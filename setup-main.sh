@@ -305,9 +305,9 @@ TEXT="
 ║▌║║▌║▌║║▌║║▌║▌║║▌║║
 𝗖𝗢𝗡𝗧𝗔𝗖𝗧 :
 💬𝗧𝗘𝗟𝗘𝗚𝗥𝗔𝗠
-☞ @WendiVpn
+☞ @nvtryn
 💬𝗪𝗛𝗔𝗧𝗦𝗔𝗣𝗣
-☞ +6283153170199</code>
+☞ +6282300115583</code>
 <i>Simpan Baik-baik informasi ini tidak akan di kirim Ulang </i>
 "'&reply_markup={"inline_keyboard":[[{"text":"ᴏʀᴅᴇʀ","url":"https://t.me/wendivpn"},{"text":"Contack","url":"https://wa.me/6283153170199"}]]}'
 curl -s --max-time $TIMES -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
