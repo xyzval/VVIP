@@ -34,20 +34,20 @@ echo -e "${YELLOW}----------------------------------------------------------${NC
 echo ""
 sleep 3
 clear
-while true; do
-    read -s -p "Password : " passwd
-    echo
-    read -s -p "Konfirmasi Password : " passwd_confirm
-    echo
-    if [[ -n "$passwd" && "$passwd" == "$passwd_confirm" ]]; then
-        echo "$passwd" > /etc/.password.txt
-        break
-    else
-        echo "Password harus diisi dan harus sama. Silakan coba lagi."
-    fi
-done
-echo root:$passwd | sudo chpasswd root > /dev/null 2>&1
-sudo systemctl restart sshd > /dev/null 2>&1      
+# while true; do
+#     read -s -p "Password : " passwd
+#     echo
+#     read -s -p "Konfirmasi Password : " passwd_confirm
+#     echo
+#     if [[ -n "$passwd" && "$passwd" == "$passwd_confirm" ]]; then
+#         echo "$passwd" > /etc/.password.txt
+#         break
+#     else
+#         echo "Password harus diisi dan harus sama. Silakan coba lagi."
+#     fi
+# done
+# echo root:$passwd | sudo chpasswd root > /dev/null 2>&1
+# sudo systemctl restart sshd > /dev/null 2>&1      
 if [[ $( uname -m | awk '{print $1}' ) == "x86_64" ]]; then
 echo -e "${OK} Your Architecture Is Supported ( ${green}$( uname -m )${NC} )"
 else
@@ -86,9 +86,9 @@ MYIP=$(curl -sS ipv4.icanhazip.com)
 echo -e "\e[32mloading...\e[0m"
 clear
 rm -f /usr/bin/user
-username=$(curl https://raw.githubusercontent.com/bowowiwendi/ipvps/main/ip | grep $MYIP | awk '{print $2}')
+username=$(curl https://raw.githubusercontent.com/xyzval/VVIP/main/REGIST | grep $MYIP | awk '{print $2}')
 echo "$username" >/usr/bin/user
-valid=$(curl https://raw.githubusercontent.com/bowowiwendi/ipvps/main/ip | grep $MYIP | awk '{print $3}')
+valid=$(curl https://raw.githubusercontent.com/xyzval/VVIP/main/REGIST | grep $MYIP | awk '{print $3}')
 echo "$valid" >/usr/bin/e
 username=$(cat /usr/bin/user)
 oid=$(cat /usr/bin/ver)
@@ -107,7 +107,7 @@ mai="datediff "$Exp" "$DATE""
 Info="(${green}Active${NC})"
 Error="(${RED}ExpiRED${NC})"
 today=`date -d "0 days" +"%Y-%m-%d"`
-Exp1=$(curl https://raw.githubusercontent.com/bowowiwendi/ipvps/main/ip | grep $MYIP | awk '{print $4}')
+Exp1=$(curl https://raw.githubusercontent.com/xyzval/VVIP/main/REGIST | grep $MYIP | awk '{print $4}')
 if [[ $today < $Exp1 ]]; then
 sts="${Info}"
 else
@@ -115,7 +115,7 @@ sts="${Error}"
 fi
 echo -e "\e[32mloading...\e[0m"
 clear
-REPO="https://raw.githubusercontent.com/bowowiwendi/WendyVpn/ABSTRAK/"
+REPO="https://raw.githubusercontent.com/xyzval/VVIP/main/"
 start=$(date +%s)
 secs_to_human() {
 echo "Installation time : $((${1} / 3600)) hours $(((${1} / 60) % 60)) minute's $((${1} % 60)) seconds"
@@ -282,8 +282,8 @@ fi
 }
 clear
 restart_system() {
-USRSC=$(wget -qO- https://raw.githubusercontent.com/bowowiwendi/ipvps/main/ip | grep $ipsaya | awk '{print $2}')
-EXPSC=$(wget -qO- https://raw.githubusercontent.com/bowowiwendi/ipvps/main/ip | grep $ipsaya | awk '{print $3}')
+USRSC=$(wget -qO- https://raw.githubusercontent.com/xyzval/VVIP/main/REGIST | grep $ipsaya | awk '{print $2}')
+EXPSC=$(wget -qO- https://raw.githubusercontent.com/xyzval/VVIP/main/REGIST | grep $ipsaya | awk '{print $3}')
 TIMEZONE=$(printf '%(%H:%M:%S)T')
 RX=$(cat /dev/urandom | tr -dc 'A-Za-z0-9' | head -c 8) # Menghasilkan nomor acak antara 1000 dan 9999
 TEXT="
