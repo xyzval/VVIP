@@ -16,6 +16,16 @@
 ### SLOW DNS
 <pre><code>wget https://raw.githubusercontent.com/fisabiliyusri/SLDNS/main/slowdns/install-sldns && chmod +x install-sldns && ./install-sldns</code></pre>
 
+Masukkan perintah dibawah jika terdapat eror pada satus haproxy
+```
+cat /etc/xray/xray.key /etc/xray/xray.crt > /etc/haproxy/hap.pem
+```
+Setelah sertifikat dan kunci ssl berhasil dipindahkan, restart haproxynya
+```
+sudo systemctl restart haproxy
+```
+Kembali ke menu utama dan cek apakah haproxy sudah berjalan dengan normal
+
 ### TESTED ON OS 
 - UBUNTU 20
 - DEBIAN 10 ( Recomended )
