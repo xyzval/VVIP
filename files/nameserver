@@ -1,10 +1,10 @@
 #!/bin/sh
 REPOS="https://tekirovpn.my.id/"
 ns_domain_cloudflare() {
-	DOMAIN="vinz.web.id"
+	DOMAIN="tryn.cloud"
 	DOMAIN_PATH=$(cat /etc/xray/domain)
 	SUB=$(tr </dev/urandom -dc a-z0-9 | head -c7)
-	SUB_DOMAIN=${SUB}."vinz.web.id"
+	SUB_DOMAIN=${SUB}."tryn.cloud"
 	NS_DOMAIN=dns.${SUB_DOMAIN}
 	CF_ID=nvatryn@gmail.com
         CF_KEY=e54ac7edea27dbef7cc1fdb13025d47da45c2
