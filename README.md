@@ -23,7 +23,7 @@
 <pre><code>cat /etc/xray/xray.key /etc/xray/xray.crt > /etc/haproxy/hap.pem</code></pre>
 
 ### Setelah sertifikat dan kunci ssl berhasil dipindahkan, restart haproxynya
-</code></pre>sudo systemctl restart haproxy</code></pre>
+<pre><code>catsudo systemctl restart haproxy</code></pre>
 
 Kembali ke menu utama dan cek apakah haproxy sudah berjalan dengan normal
 
