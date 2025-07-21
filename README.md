@@ -20,13 +20,11 @@
 <pre><code>wget https://raw.githubusercontent.com/fisabiliyusri/SLDNS/main/slowdns/install-sldns && chmod +x install-sldns && ./install-sldns</code></pre>
 
 ### Masukkan perintah dibawah jika terdapat eror pada satus haproxy
-```
 </code></pre>cat /etc/xray/xray.key /etc/xray/xray.crt > /etc/haproxy/hap.pem</code></pre>
-```
-Setelah sertifikat dan kunci ssl berhasil dipindahkan, restart haproxynya
-```
-sudo systemctl restart haproxy
-```
+
+### Setelah sertifikat dan kunci ssl berhasil dipindahkan, restart haproxynya
+</code></pre>sudo systemctl restart haproxy</code></pre>
+
 Kembali ke menu utama dan cek apakah haproxy sudah berjalan dengan normal
 
 ### TESTED ON OS 
