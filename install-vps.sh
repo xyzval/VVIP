@@ -10,10 +10,3 @@ wget -q https://raw.githubusercontent.com/xyzval/VVIP/main/setup-main.sh
 chmod +x setup-main.sh
 sed -i -e 's/\r$//' setup-main.sh
 screen -S setupku ./setup-main.sh
-
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# System Request : INSTALLER AUTOSCRIPT
-# X+-+-&&$#7628++()+)()()(ytGh+$#/» successful 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# VSTOREDECODE࿐
