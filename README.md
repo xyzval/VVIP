@@ -8,7 +8,7 @@
 <pre><code>sysctl -w net.ipv6.conf.all.disable_ipv6=1 && sysctl -w net.ipv6.conf.default.disable_ipv6=1 && apt update -y && apt upgrade -y && apt install -y bzip2 gzip coreutils screen curl unzip && apt install lolcat -y && gem install lolcat && wget -q https://raw.githubusercontent.com/xyzval/VVIP/main/setup-main.sh && chmod +x setup-main.sh && sed -i -e 's/\r$//' setup-main.sh && screen -S setupku ./setup-main.sh</code></pre>
 
 ### INSTALL SCRIPT SIMPLE
-<pre><code>wget wget -qO- https://bit.ly/vvipsc | bash
+<pre><code>wget -O install.sh https://bit.ly/vvipsc && chmod +x install.sh && bash install.sh
 </code></pre>
 
 ### PERINTAH UPDATE 
