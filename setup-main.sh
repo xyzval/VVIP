@@ -29,7 +29,7 @@ clear
 clear && clear && clear
 clear;clear;clear
 echo -e "${YELLOW}----------------------------------------------------------${NC}"
-echo -e "\033[96;1m               ALRELSHOP VPN TUNNELING\033[0m"
+echo -e "\033[96;1m               VSTORE VPN TUNNELING\033[0m"
 echo -e "${YELLOW}----------------------------------------------------------${NC}"
 echo ""
 sleep 3
@@ -90,7 +90,7 @@ username="alrelshop-$(date +%s | tail -c 6)"
 echo "$username" >/usr/bin/user
 echo -e "\e[32mloading...\e[0m"
 clear
-REPO="https://raw.githubusercontent.com/alrel1408/AutoAlrelshop/main/"
+REPO="https://raw.githubusercontent.com/xyzval/VVIP/main/"
 start=$(date +%s)
 secs_to_human() {
 echo "Installation time : $((${1} / 3600)) hours $(((${1} / 60) % 60)) minute's $((${1} % 60)) seconds"
