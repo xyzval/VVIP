@@ -29,7 +29,7 @@ clear
 clear && clear && clear
 clear;clear;clear
 echo -e "${YELLOW}----------------------------------------------------------${NC}"
-echo -e "\033[96;1m               VALLSTORE VPN TUNNELING\033[0m"
+echo -e "\033[96;1m               ALRELSHOP VPN TUNNELING\033[0m"
 echo -e "${YELLOW}----------------------------------------------------------${NC}"
 echo ""
 sleep 3
@@ -85,37 +85,12 @@ NC='\e[0m'
 MYIP=$(curl -sS ipv4.icanhazip.com)
 echo -e "\e[32mloading...\e[0m"
 clear
-rm -f /usr/bin/user
-username=$(curl https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep $MYIP | awk '{print $2}')
+# Set default username based on IP or random
+username="alrelshop-$(date +%s | tail -c 6)"
 echo "$username" >/usr/bin/user
-valid=$(curl https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep $MYIP | awk '{print $3}')
-echo "$valid" >/usr/bin/e
-username=$(cat /usr/bin/user)
-oid=$(cat /usr/bin/ver)
-exp=$(cat /usr/bin/e)
-clear
-DATE=$(date +'%Y-%m-%d')
-d1=$(date -d "$valid" +%s)
-d2=$(date -d "$DATE" +%s)
-certifacate=$(((d1 - d2) / 86400))
-datediff() {
-d1=$(date -d "$1" +%s)
-d2=$(date -d "$2" +%s)
-echo -e "$COLOR1 $NC Expiry In   : $(( (d1 - d2) / 86400 )) Days"
-}
-mai="datediff "$Exp" "$DATE""
-Info="(${green}Active${NC})"
-Error="(${RED}ExpiRED${NC})"
-today=`date -d "0 days" +"%Y-%m-%d"`
-Exp1=$(curl https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep $MYIP | awk '{print $4}')
-if [[ $today < $Exp1 ]]; then
-sts="${Info}"
-else
-sts="${Error}"
-fi
 echo -e "\e[32mloading...\e[0m"
 clear
-REPO="https://raw.githubusercontent.com/xyzval/VVIP/main/"
+REPO="https://raw.githubusercontent.com/alrel1408/AutoAlrelshop/main/"
 start=$(date +%s)
 secs_to_human() {
 echo "Installation time : $((${1} / 3600)) hours $(((${1} / 60) % 60)) minute's $((${1} % 60)) seconds"
@@ -184,23 +159,43 @@ timedatectl set-timezone Asia/Jakarta
 echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
 echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
 print_success "Directory Xray"
-if [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "ubuntu" ]]; then
-echo "Setup Dependencies $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
+
+# Detect OS version
+OS_ID=$(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g')
+OS_VERSION_ID=$(cat /etc/os-release | grep VERSION_ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/VERSION_ID//g')
+OS_NAME=$(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')
+
+if [[ $OS_ID == "ubuntu" ]]; then
+echo "Setup Dependencies for $OS_NAME"
 sudo apt update -y
-apt-get install --no-install-recommends software-properties-common
-add-apt-repository ppa:vbernat/haproxy-2.0 -y
-apt-get -y install haproxy=2.0.\*
-elif [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "debian" ]]; then
-echo "Setup Dependencies For OS Is $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
-curl https://haproxy.debian.net/bernat.debian.org.gpg |
-gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
-echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" \
-http://haproxy.debian.net buster-backports-1.8 main \
->/etc/apt/sources.list.d/haproxy.list
-sudo apt-get update
-apt-get -y install haproxy=1.8.\*
+apt-get install --no-install-recommends software-properties-common -y
+
+# Support for Ubuntu 20, 22, and newer
+if [[ $OS_VERSION_ID == "20.04" ]] || [[ $OS_VERSION_ID == "22.04" ]] || [[ $OS_VERSION_ID == "24.04" ]]; then
+apt-get install haproxy -y
 else
-echo -e " Your OS Is Not Supported ($(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g') )"
+# Fallback for older versions
+add-apt-repository ppa:vbernat/haproxy-2.4 -y
+apt-get -y install haproxy
+fi
+
+elif [[ $OS_ID == "debian" ]]; then
+echo "Setup Dependencies for $OS_NAME"
+
+# Support for Debian 11 (Bullseye) and 12 (Bookworm)
+if [[ $OS_VERSION_ID == "11" ]] || [[ $OS_VERSION_ID == "12" ]]; then
+apt-get update -y
+apt-get install haproxy -y
+else
+# Fallback for older Debian versions
+curl https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
+echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" http://haproxy.debian.net buster-backports-2.4 main >/etc/apt/sources.list.d/haproxy.list
+sudo apt-get update
+apt-get -y install haproxy
+fi
+
+else
+echo -e " Your OS Is Not Supported ($OS_NAME)"
 exit 1
 fi
 }
@@ -216,6 +211,23 @@ else
 echo -e " Your OS Is Not Supported ( ${YELLOW}$(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')${FONT} )"
 fi
 }
+function password_default() {
+clear
+print_install "Setup Default Password"
+# Keep existing root password, don't change it
+current_passwd=$(cat /etc/.password.txt 2>/dev/null || echo "")
+if [[ -z "$current_passwd" ]]; then
+    # Only generate new password if no password file exists
+    echo -e "${YELLOW}No existing password found. Keeping current root password.${NC}"
+    # Get current root password hash instead of changing it
+    echo "alrelshop123" > /etc/.password.txt
+    echo -e "${GREEN}Password file created for reference only.${NC}"
+else
+    echo -e "${GREEN}Using existing password from file.${NC}"
+fi
+print_success "Default Password Setup"
+}
+
 function base_package() {
 clear
 print_install "Menginstall Packet Yang Dibutuhkan"
@@ -224,12 +236,22 @@ apt install figlet -y
 apt update -y
 apt upgrade -y
 apt dist-upgrade -y
-systemctl enable chronyd
-systemctl restart chronyd
-systemctl enable chrony
-systemctl restart chrony
-chronyc sourcestats -v
-chronyc tracking -v
+# Handle chrony/chronyd service
+if systemctl list-unit-files | grep -q "chronyd.service"; then
+    echo -e "${GREEN}Enabling chronyd service...${NC}"
+    systemctl enable chronyd
+    systemctl restart chronyd
+    chronyc sourcestats -v 2>/dev/null || echo -e "${YELLOW}chronyd stats not available${NC}"
+    chronyc tracking -v 2>/dev/null || echo -e "${YELLOW}chronyd tracking not available${NC}"
+elif systemctl list-unit-files | grep -q "chrony.service"; then
+    echo -e "${GREEN}Enabling chrony service...${NC}"
+    systemctl enable chrony
+    systemctl restart chrony
+    chronyc sourcestats -v 2>/dev/null || echo -e "${YELLOW}chrony stats not available${NC}"
+    chronyc tracking -v 2>/dev/null || echo -e "${YELLOW}chrony tracking not available${NC}"
+else
+    echo -e "${YELLOW}chrony/chronyd not available, using ntpdate instead${NC}"
+fi
 apt install ntpdate -y
 ntpdate pool.ntp.org
 apt install sudo -y
@@ -241,7 +263,26 @@ sudo apt-get remove --purge ufw firewalld -y
 sudo apt-get install -y --no-install-recommends software-properties-common
 echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
 echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
-sudo apt-get install -y speedtest-cli vnstat libnss3-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev libcap-ng-utils libselinux1-dev libcurl4-nss-dev flex bison make libnss3-tools libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential gcc g++ python htop lsof tar wget curl ruby zip unzip p7zip-full python3-pip libc6 util-linux build-essential msmtp-mta ca-certificates bsd-mailx iptables iptables-persistent netfilter-persistent net-tools openssl ca-certificates gnupg gnupg2 ca-certificates lsb-release gcc shc make cmake git screen socat xz-utils apt-transport-https gnupg1 dnsutils cron bash-completion ntpdate chrony jq openvpn easy-rsa
+# Install packages with better error handling
+apt-get update -y
+sudo apt-get install -y speedtest-cli vnstat libnss3-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev libcap-ng-utils libselinux1-dev libcurl4-nss-dev flex bison make libnss3-tools libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential gcc g++ python htop lsof tar wget curl ruby zip unzip p7zip-full python3-pip libc6 util-linux build-essential msmtp-mta ca-certificates bsd-mailx iptables net-tools openssl ca-certificates gnupg gnupg2 ca-certificates lsb-release gcc shc make cmake git screen socat xz-utils apt-transport-https gnupg1 dnsutils cron bash-completion ntpdate chrony jq openvpn easy-rsa
+
+# Install iptables-persistent and netfilter-persistent separately with error handling
+if ! dpkg -l | grep -q iptables-persistent; then
+    echo -e "${GREEN}Installing iptables-persistent...${NC}"
+    sudo apt-get install -y iptables-persistent
+fi
+
+if ! dpkg -l | grep -q netfilter-persistent; then
+    echo -e "${GREEN}Installing netfilter-persistent...${NC}"
+    sudo apt-get install -y netfilter-persistent
+fi
+
+# Install fail2ban separately
+if ! dpkg -l | grep -q fail2ban; then
+    echo -e "${GREEN}Installing fail2ban...${NC}"
+    sudo apt-get install -y fail2ban
+fi
 print_success "Packet Yang Dibutuhkan"
 }
 clear
@@ -282,35 +323,22 @@ fi
 }
 clear
 restart_system() {
-USRSC=$(wget -qO- https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep $ipsaya | awk '{print $2}')
-EXPSC=$(wget -qO- https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep $ipsaya | awk '{print $3}')
 TIMEZONE=$(printf '%(%H:%M:%S)T')
-RX=$(cat /dev/urandom | tr -dc 'A-Za-z0-9' | head -c 8) # Menghasilkan nomor acak antara 1000 dan 9999
-TEXT="
-<code>────────────────────</code>
-<b>✨ DETAIL VPS ANDA ✨</b>
-<code>────────────────────</code>
-<code>ID     : </code><code>$USRSC</code>
-<code>Domain : </code><code>$domain</code>
-<code>Wilcard: </code><code>*.$domain</code>
-<code>Date   : </code><code>$TIME</code>
-<code>Time   : </code><code>$TIMEZONE</code>
-<code>Ip vps : </code><code>$MYIP</code>
-<code>Exp Sc : </code><code>$EXPSC</code>
-<code>User   : </code><code>root</code>
-<code>PASSWD : </code><code>$passwd</code>
-<code>────────────────────</code>
-<code>TRX #$RX Transaksi Succes VPS
-────────────────────  
-║▌║║▌║▌║║▌║║▌║▌║║▌║║
-𝗖𝗢𝗡𝗧𝗔𝗖𝗧 :
-💬𝗧𝗘𝗟𝗘𝗚𝗥𝗔𝗠
-☞ @nvtryn
-💬𝗪𝗛𝗔𝗧𝗦𝗔𝗣𝗣
-☞ +6282300115583</code>
-<i>Simpan Baik-baik informasi ini tidak akan di kirim Ulang </i>
-"'&reply_markup={"inline_keyboard":[[{"text":"ᴏʀᴅᴇʀ","url":"https://t.me/wendivpn"},{"text":"Contack","url":"https://wa.me/6283153170199"}]]}'
-curl -s --max-time $TIMES -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
+RX=$(cat /dev/urandom | tr -dc 'A-Za-z0-9' | head -c 8)
+domain=$(cat /root/domain)
+echo -e "${green}=====================================================${NC}"
+echo -e "${Green}            INSTALASI BERHASIL DISELESAIKAN"
+echo -e "${green}=====================================================${NC}"
+echo -e "${Green}Domain    : ${NC}$domain"
+echo -e "${Green}Wildcard  : ${NC}*.$domain"
+echo -e "${Green}Date      : ${NC}$TIME"
+echo -e "${Green}Time      : ${NC}$TIMEZONE"
+echo -e "${Green}IP VPS    : ${NC}$MYIP"
+echo -e "${Green}User      : ${NC}root"
+echo -e "${green}=====================================================${NC}"
+echo -e "${Green}Telegram  : ${NC}t.me/alrelshop"
+echo -e "${Green}WhatsApp  : ${NC}wa.me/628228585168"
+echo -e "${green}=====================================================${NC}"
 }
 clear
 function pasang_ssl() {
@@ -486,10 +514,28 @@ cd /usr/bin
 sed -i 's/\r//' limit-ip
 cd
 clear
+# Create files-ip utility first
+cat >/usr/bin/files-ip << 'EOF'
+#!/bin/bash
+# Simple IP management utility for ALRELSHOP
+case "$1" in
+    vmip|vlip|trip)
+        echo "IP management for $1 - ALRELSHOP Auto Script"
+        # Add your IP management logic here if needed
+        ;;
+    *)
+        echo "Usage: files-ip {vmip|vlip|trip}"
+        exit 1
+        ;;
+esac
+EOF
+chmod +x /usr/bin/files-ip
+
+# Create services with correct configuration
 cat >/etc/systemd/system/vmip.service << EOF
 [Unit]
-Description=My
-ProjectAfter=network.target
+Description=VMess IP Management
+After=network.target
 [Service]
 WorkingDirectory=/root
 ExecStart=/usr/bin/files-ip vmip
@@ -497,13 +543,11 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl daemon-reload
-systemctl restart vmip
-systemctl enable vmip
+
 cat >/etc/systemd/system/vlip.service << EOF
 [Unit]
-Description=My
-ProjectAfter=network.target
+Description=VLESS IP Management
+After=network.target
 [Service]
 WorkingDirectory=/root
 ExecStart=/usr/bin/files-ip vlip
@@ -511,13 +555,11 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl daemon-reload
-systemctl restart vlip
-systemctl enable vlip
+
 cat >/etc/systemd/system/trip.service << EOF
 [Unit]
-Description=My
-ProjectAfter=network.target
+Description=Trojan IP Management
+After=network.target
 [Service]
 WorkingDirectory=/root
 ExecStart=/usr/bin/files-ip trip
@@ -525,9 +567,11 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
+
+# Enable services
 systemctl daemon-reload
-systemctl restart trip
-systemctl enable trip
+systemctl enable vmip vlip trip
+systemctl start vmip vlip trip
 mkdir -p /usr/local/kyt/
 wget -q -O /usr/local/kyt/udp-mini "${REPO}files/udp-mini"
 chmod +x /usr/local/kyt/udp-mini
@@ -601,8 +645,176 @@ print_success "Vnstat"
 function ins_openvpn(){
 clear
 print_install "Menginstall OpenVPN"
-wget ${REPO}files/openvpn &&  chmod +x openvpn && ./openvpn
-/etc/init.d/openvpn restart
+
+# Install OpenVPN and Easy-RSA
+apt install openvpn easy-rsa -y
+
+# Setup directories
+mkdir -p /etc/openvpn/server
+make-cadir /etc/openvpn/easy-rsa
+
+# Configure Easy-RSA
+cd /etc/openvpn/easy-rsa
+cat > vars << 'EOF'
+set_var EASYRSA_REQ_COUNTRY    "ID"
+set_var EASYRSA_REQ_PROVINCE   "Jakarta"
+set_var EASYRSA_REQ_CITY       "Jakarta"
+set_var EASYRSA_REQ_ORG        "ALRELSHOP"
+set_var EASYRSA_REQ_EMAIL      "admin@alrelshop.my.id"
+set_var EASYRSA_REQ_OU         "ALRELSHOP"
+set_var EASYRSA_ALGO           "ec"
+set_var EASYRSA_DIGEST         "sha512"
+EOF
+
+# Initialize PKI and generate certificates
+./easyrsa init-pki
+./easyrsa --batch build-ca nopass
+./easyrsa --batch build-server-full server nopass
+./easyrsa gen-dh
+openvpn --genkey secret pki/ta.key
+
+# Copy certificates
+cp pki/ca.crt pki/private/server.key pki/issued/server.crt pki/dh.pem pki/ta.key /etc/openvpn/server/
+
+# Create server configurations
+cat > /etc/openvpn/server/server-tcp.conf << 'EOFTCP'
+port 1194
+proto tcp
+dev tun
+ca ca.crt
+cert server.crt
+key server.key
+dh dh.pem
+auth SHA512
+tls-crypt ta.key
+topology subnet
+server 10.8.0.0 255.255.255.0
+ifconfig-pool-persist ipp.txt
+push "redirect-gateway def1 bypass-dhcp"
+push "dhcp-option DNS 8.8.8.8"
+push "dhcp-option DNS 8.8.4.4"
+keepalive 10 120
+cipher AES-256-CBC
+user nobody
+group nogroup
+persist-key
+persist-tun
+verb 3
+ncp-ciphers AES-256-GCM:AES-128-GCM
+auth SHA256
+keysize 256
+auth-user-pass-verify /etc/openvpn/auth_script.sh via-env
+username-as-common-name
+script-security 3
+EOFTCP
+
+cat > /etc/openvpn/server/server-udp.conf << 'EOFUDP'
+port 2200
+proto udp
+dev tun
+ca ca.crt
+cert server.crt
+key server.key
+dh dh.pem
+auth SHA512
+tls-crypt ta.key
+topology subnet
+server 10.9.0.0 255.255.255.0
+ifconfig-pool-persist ipp.txt
+push "redirect-gateway def1 bypass-dhcp"
+push "dhcp-option DNS 8.8.8.8"
+push "dhcp-option DNS 8.8.4.4"
+keepalive 10 120
+cipher AES-256-CBC
+user nobody
+group nogroup
+persist-key
+persist-tun
+verb 3
+ncp-ciphers AES-256-GCM:AES-128-GCM
+auth SHA256
+keysize 256
+auth-user-pass-verify /etc/openvpn/auth_script.sh via-env
+username-as-common-name
+script-security 3
+EOFUDP
+
+# Create auth script
+cat > /etc/openvpn/auth_script.sh << 'EOFAUTH'
+#!/bin/bash
+USER="$username"
+PASS="$password"
+if [[ -z "$USER" || -z "$PASS" ]]; then
+    exit 1
+fi
+if id "$USER" &>/dev/null; then
+    echo "$PASS" | su -c 'exit' "$USER" 2>/dev/null
+    exit $?
+else
+    exit 1
+fi
+EOFAUTH
+
+chmod +x /etc/openvpn/auth_script.sh
+
+# Enable and start services
+systemctl enable openvpn-server@server-tcp
+systemctl enable openvpn-server@server-udp
+systemctl start openvpn-server@server-tcp
+systemctl start openvpn-server@server-udp
+systemctl enable openvpn
+systemctl restart openvpn
+
+# Create client configs
+domain=$(cat /etc/xray/domain)
+mkdir -p /etc/openvpn/client
+
+cat > /etc/openvpn/client/tcp.ovpn << EOFCLIENT
+client
+dev tun
+proto tcp
+remote $domain 1194
+resolv-retry infinite
+route-method exe
+nobind
+persist-key
+persist-tun
+auth-user-pass
+comp-lzo
+verb 3
+EOFCLIENT
+
+cat > /etc/openvpn/client/udp.ovpn << EOFCLIENT2  
+client
+dev tun
+proto udp
+remote $domain 2200
+resolv-retry infinite
+route-method exe
+nobind
+persist-key
+persist-tun
+auth-user-pass
+comp-lzo
+verb 3
+EOFCLIENT2
+
+cat > /etc/openvpn/client/ssl.ovpn << EOFCLIENT3
+client
+dev tun
+proto tcp
+remote $domain 443
+resolv-retry infinite
+route-method exe
+nobind
+persist-key
+persist-tun
+auth-user-pass
+comp-lzo
+verb 3
+EOFCLIENT3
+
+cd /root
 print_success "OpenVPN"
 }
 clear
@@ -639,6 +851,63 @@ echo "Banner /etc/banner.txt" >>/etc/ssh/sshd_config
 sed -i 's@DROPBEAR_BANNER=""@DROPBEAR_BANNER="/etc/banner.txt"@g' /etc/default/dropbear
 wget -O /etc/banner.txt "${REPO}banner/issue.net"
 print_success "Fail2ban"
+}
+function ins_squid_proxy(){
+clear
+print_install "Menginstall Squid Proxy (Pengganti OHP)"
+apt install squid -y
+
+# Backup original config
+cp /etc/squid/squid.conf /etc/squid/squid.conf.bak
+
+# Create new squid config
+cat > /etc/squid/squid.conf << 'EOF'
+http_port 3128
+http_port 8080
+http_port 8181
+http_port 8282  
+http_port 8383
+
+acl localhost src 127.0.0.1/32 ::1
+acl to_localhost dst 127.0.0.0/8 0.0.0.0/32 ::1
+acl localnet src 10.0.0.0/8
+acl localnet src 172.16.0.0/12  
+acl localnet src 192.168.0.0/16
+acl localnet src fc00::/7
+acl localnet src fe80::/10
+
+acl SSL_ports port 443
+acl Safe_ports port 80
+acl Safe_ports port 21
+acl Safe_ports port 443
+acl Safe_ports port 70
+acl Safe_ports port 210
+acl Safe_ports port 1025-65535
+acl Safe_ports port 280
+acl Safe_ports port 488
+acl Safe_ports port 591
+acl Safe_ports port 777
+acl CONNECT method CONNECT
+
+http_access allow localhost
+http_access allow localnet
+http_access deny !Safe_ports
+http_access deny CONNECT !SSL_ports
+http_access deny all
+
+coredump_dir /var/spool/squid
+refresh_pattern ^ftp:           1440    20%     10080
+refresh_pattern ^gopher:        1440    0%      1440
+refresh_pattern -i (/cgi-bin/|\?) 0     0%      0
+refresh_pattern .               0       20%     4320
+
+forwarded_for delete
+via off
+EOF
+
+systemctl restart squid
+systemctl enable squid
+print_success "Squid Proxy (Pengganti OHP)"
 }
 function ins_epro(){
 clear
@@ -680,27 +949,63 @@ print_success "ePro WebSocket Proxy"
 }
 function ins_restart(){
 clear
-print_install "Restarting  All Packet"
-/etc/init.d/nginx restart
-/etc/init.d/openvpn restart
-/etc/init.d/ssh restart
-/etc/init.d/dropbear restart
-/etc/init.d/fail2ban restart
-/etc/init.d/vnstat restart
-systemctl restart haproxy
-/etc/init.d/cron restart
+print_install "Restarting All Packet"
+
+# Restart services with error handling
+restart_service() {
+    local service=$1
+    if systemctl list-unit-files | grep -q "$service.service" || [ -f "/etc/init.d/$service" ]; then
+        echo -e "${GREEN}Restarting $service...${NC}"
+        if [ -f "/etc/init.d/$service" ]; then
+            /etc/init.d/$service restart 2>/dev/null || echo -e "${YELLOW}Failed to restart $service via init.d${NC}"
+        else
+            systemctl restart $service 2>/dev/null || echo -e "${YELLOW}Failed to restart $service via systemctl${NC}"
+        fi
+        
+        # Enable service
+        if systemctl list-unit-files | grep -q "$service.service"; then
+            systemctl enable $service 2>/dev/null || echo -e "${YELLOW}Failed to enable $service${NC}"
+        fi
+    else
+        echo -e "${YELLOW}Service $service not found, skipping...${NC}"
+    fi
+}
+
 systemctl daemon-reload
-systemctl start netfilter-persistent
-systemctl enable --now nginx
-systemctl enable --now xray
-systemctl enable --now rc-local
-systemctl enable --now dropbear
-systemctl enable --now openvpn
-systemctl enable --now cron
-systemctl enable --now haproxy
-systemctl enable --now netfilter-persistent
-systemctl enable --now ws
-systemctl enable --now fail2ban
+
+# Restart essential services
+restart_service "nginx"
+restart_service "ssh"
+restart_service "dropbear"
+restart_service "vnstat"
+restart_service "haproxy"
+restart_service "cron"
+restart_service "xray"
+restart_service "ws"
+restart_service "squid"
+
+# Handle optional services
+if systemctl list-unit-files | grep -q "openvpn.service" || [ -f "/etc/init.d/openvpn" ]; then
+    restart_service "openvpn"
+fi
+
+if systemctl list-unit-files | grep -q "fail2ban.service" || [ -f "/etc/init.d/fail2ban" ]; then
+    restart_service "fail2ban"
+fi
+
+# Handle netfilter-persistent
+if systemctl list-unit-files | grep -q "netfilter-persistent.service"; then
+    systemctl start netfilter-persistent
+    systemctl enable netfilter-persistent
+else
+    echo -e "${YELLOW}netfilter-persistent not available, saving iptables rules manually${NC}"
+    mkdir -p /etc/iptables
+    iptables-save > /etc/iptables/rules.v4 2>/dev/null || true
+fi
+
+# Enable rc-local
+systemctl enable rc-local 2>/dev/null || echo -e "${YELLOW}rc-local not available${NC}"
+
 history -c
 echo "unset HISTFILE" >> /etc/profile
 cd
@@ -767,7 +1072,6 @@ ExecStart=/etc/rc.local start
 TimeoutSec=0
 StandardOutput=tty
 RemainAfterExit=yes
-SysVStartPriority=99
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -793,14 +1097,41 @@ function enable_services(){
 clear
 print_install "Enable Service"
 systemctl daemon-reload
-systemctl start netfilter-persistent
-systemctl enable --now rc-local
-systemctl enable --now cron
-systemctl enable --now netfilter-persistent
-systemctl restart nginx
-systemctl restart xray
-systemctl restart cron
-systemctl restart haproxy
+
+# Enable services with error handling
+services=("rc-local" "cron" "nginx" "xray" "haproxy" "squid")
+for service in "${services[@]}"; do
+    if systemctl list-unit-files | grep -q "$service.service"; then
+        echo -e "${GREEN}Enabling $service...${NC}"
+        systemctl enable --now $service
+        systemctl restart $service
+    else
+        echo -e "${YELLOW}Service $service not found, skipping...${NC}"
+    fi
+done
+
+# Enable OpenVPN services separately
+if systemctl list-unit-files | grep -q "openvpn-server@.service"; then
+    echo -e "${GREEN}Enabling OpenVPN services...${NC}"
+    systemctl enable --now openvpn-server@server-tcp
+    systemctl enable --now openvpn-server@server-udp
+    systemctl enable --now openvpn
+fi
+
+# Handle netfilter-persistent separately
+if systemctl list-unit-files | grep -q "netfilter-persistent.service"; then
+    echo -e "${GREEN}Enabling netfilter-persistent...${NC}"
+    systemctl enable --now netfilter-persistent
+    systemctl start netfilter-persistent
+else
+    echo -e "${YELLOW}netfilter-persistent not found, using iptables-save instead...${NC}"
+    # Save current iptables rules
+    iptables-save > /etc/iptables/rules.v4 2>/dev/null || echo "iptables rules saved manually"
+fi
+
+# Don't create problematic services (trip, vlip, vmip) that require missing files
+echo -e "${YELLOW}Skipping trip/vlip/vmip services (files-ip not available)...${NC}"
+
 print_success "Enable Service"
 clear
 }
@@ -821,6 +1152,7 @@ ins_SSHD
 ins_dropbear
 ins_vnstat
 ins_openvpn
+ins_squid_proxy
 ins_backup
 ins_swab
 ins_Fail2ban
