@@ -7,10 +7,6 @@
 ### INSTALL SCRIPT 
 <pre><code>sysctl -w net.ipv6.conf.all.disable_ipv6=1 && sysctl -w net.ipv6.conf.default.disable_ipv6=1 && apt update -y && apt upgrade -y && apt install -y bzip2 gzip coreutils screen curl unzip && apt install lolcat -y && gem install lolcat && wget -q https://raw.githubusercontent.com/xyzval/VVIP/main/setup-main.sh && chmod +x setup-main.sh && sed -i -e 's/\r$//' setup-main.sh && screen -S setupku ./setup-main.sh</code></pre>
 
-### INSTALL SCRIPT SIMPLE
-<pre><code>wget -O install.sh https://bit.ly/vvipsc && chmod +x install.sh && bash install.sh
-</code></pre>
-
 ### PERINTAH UPDATE 
 <pre><code>wget https://raw.githubusercontent.com/xyzval/VVIP/main/files/update.sh && chmod +x update.sh && ./update.sh</code></pre>
 
@@ -19,14 +15,6 @@
 
 ### SLOW DNS
 <pre><code>wget https://raw.githubusercontent.com/fisabiliyusri/SLDNS/main/slowdns/install-sldns && chmod +x install-sldns && ./install-sldns</code></pre>
-
-### Masukkan perintah dibawah jika terdapat eror pada satus haproxy
-<pre><code>cat /etc/xray/xray.key /etc/xray/xray.crt > /etc/haproxy/hap.pem</code></pre>
-
-### Setelah sertifikat dan kunci ssl berhasil dipindahkan, restart haproxynya
-<pre><code>catsudo systemctl restart haproxy</code></pre>
-
-Kembali ke menu utama dan cek apakah haproxy sudah berjalan dengan normal
 
 ### TESTED ON OS 
 - UBUNTU 20
