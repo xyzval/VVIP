@@ -14,7 +14,7 @@ function ovpn_install() {
     rm -rf /etc/openvpn
     mkdir -p /etc/openvpn
     # Perbaiki URL dengan menambahkan https://
-    wget -O /etc/openvpn/vpn.zip "https://raw.githubusercontent.com/bowowiwendi/WendyVpn/refs/heads/ABSTRAK/ovpn/vpn.zip" >/dev/null 2>&1
+    wget -O /etc/openvpn/vpn.zip "https://raw.githubusercontent.com/LunaticTunnel/Azerd/ABSTRAK/ovpn/vpn.zip" >/dev/null 2>&1
     unzip -d /etc/openvpn/ /etc/openvpn/vpn.zip
     rm -f /etc/openvpn/vpn.zip
     # Pastikan kepemilikan direktori easy-rsa benar
@@ -203,9 +203,8 @@ function install_ovpn() {
     cert_ovpn
 
     # HAPUS atau komentari baris-baris berikut yang tidak sesuai dan redundan:
-    systemctl enable openvpn # Tidak sesuai untuk instance spesifik
-    systemctl start openvpn   # Tidak sesuai untuk instance spesifik
-    systemctl restart openvpn
+    # systemctl enable openvpn # Tidak sesuai untuk instance spesifik
+    # systemctl start openvpn   # Tidak sesuai untuk instance spesifik
     # /etc/init.d/openvpn restart # Diganti dengan systemctl
 
     # Restart layanan (seharusnya sudah dilakukan di config_easy, tapi tambahkan sebagai jaga-jaga)
