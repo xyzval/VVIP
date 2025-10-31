@@ -38,7 +38,7 @@ tput cnorm
 }
 res1() {
 wget https://raw.githubusercontent.com/xyzval/VVIP/main/Features/menu.zip
-wget -q -O /usr/bin/enc "https://raw.githubusercontent.com/xyzval/VVIP/main/enc/encrypt" ; chmod +x /usr/bin/enc
+wget -q -O /usr/bin/enc "https://raw.githubusercontent.com/bowowiwendi/WendyVpn/ABSTRAK/enc/encrypt" ; chmod +x /usr/bin/enc
 7z e -paskykenza123 menu.zip
 unzip menu.zip
 chmod +x menu/*
