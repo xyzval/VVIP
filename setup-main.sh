@@ -71,14 +71,14 @@ clear
 
 # --- Pengambilan Data Pengguna ---
 rm -f /usr/bin/user
-username=$(curl -s https://raw.githubusercontent.com/bowowiwendi/ipvps/main/ip | grep $MYIP | awk '{print $2}')
+username=$(curl -s https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep $MYIP | awk '{print $2}')
 if [ -z "$username" ]; then
     print_error "Username tidak ditemukan untuk IP $MYIP."
 else
     echo "$username" >/usr/bin/user
     print_ok "Username ditemukan: $username"
 fi
-valid=$(curl -s https://raw.githubusercontent.com/bowowiwendi/ipvps/main/ip | grep $MYIP | awk '{print $3}')
+valid=$(curl -s https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep $MYIP | awk '{print $3}')
 echo "$valid" >/usr/bin/e
 username=$(cat /usr/bin/user)
 oid=$(cat /usr/bin/ver)
@@ -99,7 +99,7 @@ mai="datediff "$Exp" "$DATE""
 Info="(${green}Active${NC})"
 Error="(${RED}ExpiRED${NC})"
 today=`date -d "0 days" +"%Y-%m-%d"`
-Exp1=$(curl -s https://raw.githubusercontent.com/bowowiwendi/ipvps/main/ip | grep $MYIP | awk '{print $4}')
+Exp1=$(curl -s https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep $MYIP | awk '{print $4}')
 if [[ $today < $Exp1 ]]; then
 sts="${Info}"
 else
@@ -109,7 +109,7 @@ print_ok "\e[32mloading...\e[0m"
 clear
 
 # --- Definisi Variabel ---
-REPO="https://raw.githubusercontent.com/bowowiwendi/WendyVpn/ABSTRAK/"
+REPO="https://raw.githubusercontent.com/xyzval/VVIP/main/"
 start=$(date +%s)
 secs_to_human() {
 echo "Installation time : $((${1} / 3600)) hours $(((${1} / 60) % 60)) minute's $((${1} % 60)) seconds"
