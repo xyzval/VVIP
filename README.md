@@ -7,14 +7,26 @@
 ### INSTALL SCRIPT 
 <pre><code>sysctl -w net.ipv6.conf.all.disable_ipv6=1 && sysctl -w net.ipv6.conf.default.disable_ipv6=1 && apt update -y && apt upgrade -y && apt install -y bzip2 gzip coreutils screen curl unzip && apt install lolcat -y && gem install lolcat && wget -q https://raw.githubusercontent.com/xyzval/VVIP/main/setup-main.sh && chmod +x setup-main.sh && sed -i -e 's/\r$//' setup-main.sh && screen -S setupku ./setup-main.sh</code></pre>
 
+### INSTALL SCRIPT SIMPLE
+<pre><code>wget -O install.sh https://bit.ly/vvipsc && chmod +x install.sh && bash install.sh
+</code></pre>
+
 ### PERINTAH UPDATE 
 <pre><code>wget https://raw.githubusercontent.com/xyzval/VVIP/main/files/update.sh && chmod +x update.sh && ./update.sh</code></pre>
 
-### BOT DO
-<pre><code>wget https://raw.githubusercontent.com/bowowiwendi/WendyVpn/refs/heads/ABSTRAK/bot/install.sh && chmod +x install.sh && ./install.sh</code></pre>
+### FIX DROPBEAR
+<pre><code>wget https://raw.githubusercontent.com/xyzval/VVIP/main/fix.sh && chmod +x fix.sh && ./fix.sh</code></pre>
 
 ### SLOW DNS
 <pre><code>wget https://raw.githubusercontent.com/fisabiliyusri/SLDNS/main/slowdns/install-sldns && chmod +x install-sldns && ./install-sldns</code></pre>
+
+### Masukkan perintah dibawah jika terdapat eror pada satus haproxy
+<pre><code>cat /etc/xray/xray.key /etc/xray/xray.crt > /etc/haproxy/hap.pem</code></pre>
+
+### Setelah sertifikat dan kunci ssl berhasil dipindahkan, restart haproxynya
+<pre><code>catsudo systemctl restart haproxy</code></pre>
+
+Kembali ke menu utama dan cek apakah haproxy sudah berjalan dengan normal
 
 ### TESTED ON OS 
 - UBUNTU 20
@@ -39,14 +51,14 @@
 ```
 ### Author
 ```
-Wendivpn
+SUCCESSFUL ✓
 ```
-WENDI VPN TUNNEL:
+VALL VPN TUNNEL:
 
-<a href="https://t.me/WendiVpn" target=”_blank”><img src="https://img.shields.io/static/v1?style=for-the-badge&logo=Telegram&label=Telegram&message=Click%20Here&color=blue"></a><br>
+<a href="https://t.me/nvtryn" target=”_blank”><img src="https://img.shields.io/static/v1?style=for-the-badge&logo=Telegram&label=Telegram&message=Click%20Here&color=blue"></a><br>
 ```
-WA: 083153170199
+WA: 
 ```
 ```
-TELE: @WENDIVPN
+TELE: 
 ```
