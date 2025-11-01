@@ -501,6 +501,212 @@ END
     sed -i 's/AcceptEnv/#AcceptEnv/g' /etc/ssh/sshd_config
     print_ok "Konfigurasi SSH dasar selesai."
     print_success "Password SSH"
+    pristent/autosave_v4 boolean true | debconf-set-selections
+    echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
+    print_ok "Menginstal paket utama..."
+    sudo apt install -y speedtest-cli vnstat libnss3-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev libcap-ng-utils libselinux1-dev libcurl4-nss-dev flex bison make libnss3-tools libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential gcc g++ python3 htop lsof tar wget curl ruby zip unzip p7zip-full python3-pip libc6 util-linux build-essential ca-certificates bsd-mailx gcc shc make cmake git screen socat xz-utils apt-transport-https dnsutils cron bash-completion ntpdate chrony jq easy-rsa || print_error "Gagal menginstal paket utama."
+    sudo apt install -y netfilter-persistent
+    print_ok "Melewati instalasi msmtp sesuai permintaan"
+    sudo apt install -y msmtp-mta || print_ok "msmtp-mta dilewati"
+    print_success "Packet Yang Dibutuhkan"
+    print_ok "base_package SELESAI"
+}
+
+function pasang_ssl() {
+    print_install "MENJALANKAN pasang_ssl"
+    rm -rf /etc/xray/xray.key
+    rm -rf /etc/xray/xray.crt
+    domain="$DOMAIN"
+    print_ok "Domain untuk SSL: $domain"
+    STOPWEBSERVER=$(lsof -i:80 | cut -d' ' -f1 | awk 'NR==2 {print $1}')
+    rm -rf /root/.acme.sh
+    mkdir /root/.acme.sh
+    print_ok "Menghentikan layanan web sementara..."
+    systemctl stop $STOPWEBSERVER || print_ok "Gagal menghentikan $STOPWEBSERVER (mungkin tidak berjalan)."
+    systemctl stop nginx || print_ok "Gagal menghentikan nginx (mungkin tidak berjalan)."
+    print_ok "Mengunduh dan menjalankan acme.sh..."
+    curl https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh || print_error "Gagal mengunduh acme.sh."
+    chmod +x /root/.acme.sh/acme.sh
+    /root/.acme.sh/acme.sh --upgrade --auto-upgrade || print_error "Gagal memutakhirkan acme.sh."
+    /root/.acme.sh/acme.sh --set-default-ca --server letsencrypt || print_error "Gagal mengatur CA default untuk acme.sh."
+    print_ok "Menerbitkan sertifikat SSL..."
+    /root/.acme.sh/acme.sh --issue -d $domain --standalone -k ec-256 || print_error "Gagal menerbitkan sertifikat SSL untuk $domain."
+    ~/.acme.sh/acme.sh --installcert -d $domain --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc || print_error "Gagal menginstal sertifikat SSL untuk $domain."
+    chmod 644 /etc/xray/xray.key
+    print_ok "Permission key diatur ke 644."
+    print_success "SSL Certificate"
+    print_ok "pasang_ssl SELESAI"
+}
+
+function make_folder_xray() {
+    print_install "MENJALANKAN make_folder_xray"
+    rm -rf /etc/vmess/.vmess.db
+    rm -rf /etc/vless/.vless.db
+    rm -rf /etc/trojan/.trojan.db
+    rm -rf /etc/shadowsocks/.shadowsocks.db
+    rm -rf /etc/ssh/.ssh.db
+    rm -rf /etc/bot/.bot.db
+    mkdir -p /etc/bot
+    mkdir -p /etc/vmess
+    mkdir -p /etc/vless
+    mkdir -p /etc/trojan
+    mkdir -p /etc/shadowsocks
+    mkdir -p /etc/ssh
+    mkdir -p /usr/bin/xray/
+    mkdir -p /var/log/xray/
+    mkdir -p /var/www/html
+    mkdir -p /etc/kyt/files/vmess/ip
+    mkdir -p /etc/kyt/files/vless/ip
+    mkdir -p /etc/kyt/files/trojan/ip
+    mkdir -p /etc/kyt/files/ssh/ip
+    mkdir -p /etc/files/vmess
+    mkdir -p /etc/files/vless
+    mkdir -p /etc/files/trojan
+    mkdir -p /etc/files/ssh
+    chmod +x /var/log/xray
+    touch /etc/xray/domain
+    touch /var/log/xray/access.log
+    touch /var/log/xray/error.log
+    touch /etc/vmess/.vmess.db
+    touch /etc/vless/.vless.db
+    touch /etc/trojan/.trojan.db
+    touch /etc/shadowsocks/.shadowsocks.db
+    touch /etc/ssh/.ssh.db
+    touch /etc/bot/.bot.db
+    touch /etc/xray/.lock.db
+    echo "& plughin Account" >>/etc/vmess/.vmess.db
+    echo "& plughin Account" >>/etc/vless/.vless.db
+    echo "& plughin Account" >>/etc/trojan/.trojan.db
+    echo "& plughin Account" >>/etc/shadowsocks/.shadowsocks.db
+    echo "& plughin Account" >>/etc/ssh/.ssh.db
+    cat >/etc/xray/.lock.db <<EOF
+#vmess
+#vless
+#trojan
+#ss
+EOF
+    print_ok "Folder dan file Xray berhasil dibuat."
+    print_ok "make_folder_xray SELESAI"
+}
+
+function install_xray() {
+    print_install "MENJALANKAN install_xray"
+    XRAY_VERSION="v25.1.30"
+    domainSock_dir="/run/xray"
+    ! [ -d "$domainSock_dir" ] && mkdir "$domainSock_dir"
+    chown www-data.www-data "$domainSock_dir"
+    print_ok "Memaksa menginstal Xray versi: $XRAY_VERSION"
+    bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" \
+        @ install -u www-data --version "$XRAY_VERSION" || {
+            print_error "Gagal menginstal Xray versi $XRAY_VERSION"
+            exit 1
+        }
+    print_ok "Memverifikasi versi Xray..."
+    /usr/local/bin/xray version
+    wget -O /etc/xray/config.json "${REPO}cfg_conf_js/config.json" || print_error "Gagal mengunduh config.json"
+    wget -O /etc/systemd/system/runn.service "${REPO}files/runn.service" || print_error "Gagal mengunduh runn.service"
+    domain="$DOMAIN"
+    IPVS="$ipsaya"
+    print_success "Core Xray $XRAY_VERSION"
+    clear
+    curl -s ipinfo.io/city >>/etc/xray/city
+    curl -s ipinfo.io/org | cut -d " " -f 2-10 >>/etc/xray/isp
+    print_install "Memasang Konfigurasi Packet"
+    wget -O /etc/haproxy/haproxy.cfg "${REPO}cfg_conf_js/haproxy.cfg"
+    wget -O /etc/nginx/conf.d/xray.conf "${REPO}cfg_conf_js/xray.conf"
+    sed -i "s/xxx/${domain}/g" /etc/haproxy/haproxy.cfg
+    sed -i "s/xxx/${domain}/g" /etc/nginx/conf.d/xray.conf
+    curl "${REPO}cfg_conf_js/nginx.conf" > /etc/nginx/nginx.conf
+    cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem
+    chmod +x /etc/systemd/system/runn.service
+    rm -rf /etc/systemd/system/xray.service.d
+    cat >/etc/systemd/system/xray.service <<EOF
+[Unit]
+Description=Xray Service
+Documentation=https://github.com
+After=network.target nss-lookup.target
+[Service]
+User=www-data
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+ExecStart=/usr/local/bin/xray run -config /etc/xray/config.json
+Restart=on-failure
+RestartPreventExitStatus=23
+LimitNPROC=10000
+LimitNOFILE=1000000
+[Install]
+WantedBy=multi-user.target
+EOF
+    print_success "Konfigurasi Packet"
+    print_ok "install_xray SELESAI"
+}
+
+function ssh(){
+    print_install "MENJALANKAN ssh"
+    print_ok "Mengunduh konfigurasi common-password..."
+    wget -O /etc/pam.d/common-password "${REPO}files/password" || print_error "Gagal mengunduh common-password."
+    chmod 644 /etc/pam.d/common-password
+    print_ok "Permission common-password diatur ke 644."
+    DEBIAN_FRONTEND=noninteractive dpkg-reconfigure keyboard-configuration || print_error "Gagal mengkonfigurasi keyboard secara non-interaktif."
+    print_ok "Melewati instalasi openssh-server sesuai permintaan"
+    apt install -y openssh-server || print_ok "openssh-server dilewati"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/altgr select The default for the keyboard layout"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/compose select No compose key"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/ctrl_alt_bksp boolean false"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/layoutcode string de"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/layout select English"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/modelcode string pc105"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/model select Generic 105-key (Intl) PC"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/optionscode string "
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/store_defaults_in_debconf_db boolean true"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/switch select No temporary switch"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/toggle select No toggling"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/unsupported_config_layout boolean true"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/unsupported_config_options boolean true"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/unsupported_layout boolean true"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/unsupported_options boolean true"
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/xkb-keymap select "
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/variantcode string "
+    debconf-set-selections <<<"keyboard-configuration keyboard-configuration/variant select English"
+    cd
+    cat > /etc/systemd/system/rc-local.service <<-END
+[Unit]
+Description=/etc/rc.local Compatibility
+ConditionPathExists=/etc/rc.local
+[Service]
+Type=forking
+ExecStart=/etc/rc.local start
+TimeoutSec=0
+StandardOutput=tty
+RemainAfterExit=yes
+SysVStartPriority=99
+[Install]
+WantedBy=multi-user.target
+END
+    cat > /etc/rc.local <<-END
+#!/bin/sh -e
+# rc.local
+#
+# This script is executed at the end of each multiuser runlevel.
+# Make sure that the script will "exit 0" on success or any other
+# value on error.
+#
+# In order to enable or disable this script just change the execution
+# bits.
+#
+# By default this script does nothing.
+exit 0
+END
+    chmod +x /etc/rc.local
+    systemctl enable rc-local || print_error "Gagal mengaktifkan rc-local service."
+    systemctl start rc-local.service || print_error "Gagal memulai rc-local service."
+    echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6
+    sed -i '$ i\echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6' /etc/rc.local
+    ln -fs /usr/share/zoneinfo/Asia/Jakarta /etc/localtime
+    sed -i 's/AcceptEnv/#AcceptEnv/g' /etc/ssh/sshd_config
+    print_ok "Konfigurasi SSH dasar selesai."
+    print_success "Password SSH"
     print_ok "ssh SELESAI"
 }
 
