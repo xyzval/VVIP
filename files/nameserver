@@ -1,109 +1,65 @@
-if [ ! -f /root/nsdomain ]; then
-    echo "❌ Error: DNS configuration not found. Run setup-dns.sh first!"
-    exit 1
-fi
-# Install dependencies
-echo -e "\n⏳ Installing required packages..."
-export DEBIAN_FRONTEND=noninteractive
-apt update -y && apt install -y \
-    python3 python3-dnslib net-tools dnsutils iptables jq
+#!/bin/sh
+REPOS="https://tekirovpn.my.id/"
+ns_domain_cloudflare() {
+	DOMAIN="tryn.cloud"
+	DOMAIN_PATH=$(cat /etc/xray/domain)
+	SUB=$(tr </dev/urandom -dc a-z0-9 | head -c7)
+	SUB_DOMAIN=${SUB}."tryn.cloud"
+	NS_DOMAIN=dns.${SUB_DOMAIN}
+	CF_ID=nvatryn@gmail.com
+        CF_KEY=e54ac7edea27dbef7cc1fdb13025d47da45c2
+	set -euo pipefail
+	IP=$(wget -qO- ipinfo.io/ip)
+	echo "Updating DNS NS for ${NS_DOMAIN}..."
+	ZONE=$(
+		curl -sLX GET "https://api.cloudflare.com/client/v4/zones?name=${DOMAIN}&status=active" \
+		-H "X-Auth-Email: ${CF_ID}" \
+		-H "X-Auth-Key: ${CF_KEY}" \
+		-H "Content-Type: application/json" | jq -r .result[0].id
+	)
 
-# Setup SlowDNS
-echo -e "\n🔧 Configuring SlowDNS..."
-mkdir -p /etc/slowdns
-wget -qO /etc/slowdns/server.key "https://example.com/slowdns/server.key"
-wget -qO /etc/slowdns/server.pub "https://example.com/slowdns/server.pub"
-wget -qO /etc/slowdns/sldns-server "https://example.com/slowdns/sldns-server"
-wget -qO /etc/slowdns/sldns-client "https://example.com/slowdns/sldns-client"
-chmod +x /etc/slowdns/{sldns-server,sldns-client}
+	RECORD=$(
+		curl -sLX GET "https://api.cloudflare.com/client/v4/zones/${ZONE}/dns_records?name=${NS_DOMAIN}" \
+		-H "X-Auth-Email: ${CF_ID}" \
+		-H "X-Auth-Key: ${CF_KEY}" \
+		-H "Content-Type: application/json" | jq -r .result[0].id
+	)
 
-# Service files
-echo -e "\n📝 Creating service configurations..."
+	if [[ "${#RECORD}" -le 10 ]]; then
+		RECORD=$(
+			curl -sLX POST "https://api.cloudflare.com/client/v4/zones/${ZONE}/dns_records" \
+			-H "X-Auth-Email: ${CF_ID}" \
+			-H "X-Auth-Key: ${CF_KEY}" \
+			-H "Content-Type: application/json" \
+			--data '{"type":"NS","name":"'${NS_DOMAIN}'","content":"'${DOMAIN_PATH}'","proxied":false}' | jq -r .result.id
+		)
+	fi
 
-# SlowDNS Client
-cat > /etc/systemd/system/client-sldns.service << EOF
-[Unit]
-Description=SlowDNS Client
-After=network.target
+	RESULT=$(
+		curl -sLX PUT "https://api.cloudflare.com/client/v4/zones/${ZONE}/dns_records/${RECORD}" \
+		-H "X-Auth-Email: ${CF_ID}" \
+		-H "X-Auth-Key: ${CF_KEY}" \
+		-H "Content-Type: application/json" \
+		--data '{"type":"NS","name":"'${NS_DOMAIN}'","content":"'${DOMAIN_PATH}'","proxied":false}'
+	)
+	echo $NS_DOMAIN >/etc/xray/dns
+}
 
-[Service]
-Type=simple
-User=root
-ExecStart=/etc/slowdns/sldns-client -udp 127.0.0.1:${SLOWDNS_PORT} \
-    --pubkey-file /etc/slowdns/server.pub $(cat /root/nsdomain) 127.0.0.1:${SSH_MAIN_PORT}
-Restart=always
-RestartSec=3
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# SlowDNS Server
-cat > /etc/systemd/system/server-sldns.service << EOF
-[Unit]
-Description=SlowDNS Server
-After=network.target
-
-[Service]
-Type=simple
-User=root
-ExecStart=/etc/slowdns/sldns-server -udp :${SLOWDNS_PORT} \
-    -privkey-file /etc/slowdns/server.key $(cat /root/nsdomain) 127.0.0.1:${SSH_ALT_PORT}
-Restart=always
-RestartSec=3
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# Firewall configuration
-echo -e "\n🔥 Setting up firewall rules..."
-iptables -F
-iptables -X
-iptables -Z
-
-# Allow SlowDNS port
-iptables -A INPUT -p udp --dport ${SLOWDNS_PORT} -j ACCEPT
-
-# Allow SSH on custom ports
-iptables -A INPUT -p tcp --dport ${SSH_MAIN_PORT} -j ACCEPT
-iptables -A INPUT -p tcp --dport ${SSH_ALT_PORT} -j ACCEPT
-
-# Disable default SSH port if not already changed
-if [ ${SSH_MAIN_PORT} -ne 22 ] && [ ${SSH_ALT_PORT} -ne 22 ]; then
-    iptables -A INPUT -p tcp --dport 22 -j DROP
-fi
-
-iptables-save > /etc/iptables/rules.v4
-
-# SSH Configuration
-echo -e "\n🔒 Securing SSH access..."
-sed -i "/^Port /d" /etc/ssh/sshd_config
-echo "Port ${SSH_MAIN_PORT}" >> /etc/ssh/sshd_config
-echo "Port ${SSH_ALT_PORT}" >> /etc/ssh/sshd_config
-echo "AllowTcpForwarding yes" >> /etc/ssh/sshd_config
-
-# Disable root login and password authentication
-sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/g' /etc/ssh/sshd_config
-sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
-
-systemctl restart ssh
-
-# Enable services
-echo -e "\n🚀 Starting services..."
-systemctl daemon-reload
-systemctl enable --now client-sldns server-sldns
-
-echo -e "\n\033[1;32m✅ Installation Complete!\033[0m"
-echo "========================================"
-echo "   SlowDNS Port: UDP ${SLOWDNS_PORT}"
-echo "   SSH Access Ports: ${SSH_MAIN_PORT}, ${SSH_ALT_PORT}"
-echo "   Default SSH Port (22) disabled"
-echo "========================================"
-echo -e "\n⚠️ Important Notes:"
-echo "1. DNS changes may take time to propagate"
-echo "2. Default SSH port (22) has been disabled"
-echo "3. Use these commands to check services:"
-echo "   - systemctl status client-sldns"
-echo "   - systemctl status server-sldns"
-echo "   - ss -tulnp | grep -E '${SLOWDNS_PORT}|${SSH_MAIN_PORT}|${SSH_ALT_PORT}'"
+setup_dnstt() {
+	cd
+	rm -rf *
+	mkdir -p /etc/slowdns
+	wget -O dnstt-server "${REPOS}slowdns/dnstt-server" >/dev/null 2>&1
+	chmod +x dnstt-server >/dev/null 2>&1
+	wget -O dnstt-client "${REPOS}slowdns/dnstt-client" >/dev/null 2>&1
+	chmod +x dnstt-client >/dev/null 2>&1
+	./dnstt-server -gen-key -privkey-file server.key -pubkey-file server.pub
+	chmod +x *
+	mv * /etc/slowdns
+	wget -O /etc/systemd/system/client.service "${REPOS}slowdns/client" >/dev/null 2>&1
+	wget -O /etc/systemd/system/server.service "${REPOS}slowdns/server" >/dev/null 2>&1
+	sed -i "s/xxxx/$NS_DOMAIN/g" /etc/systemd/system/client.service 
+	sed -i "s/xxxx/$NS_DOMAIN/g" /etc/systemd/system/server.service 
+}
+ns_domain_cloudflare
+setup_dnstt

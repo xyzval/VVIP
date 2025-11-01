@@ -22,7 +22,6 @@ cat >/etc/xray/.lock.db <<EOF
 #vmess
 #vless
 #trojan
-#ss
 EOF
 else
 echo -ne
@@ -90,7 +89,6 @@ for user in ${data[@]}
       sed -i "/^### $user $exp/d" /etc/vless/.vless.db
       sed -i "/^#& $user $exp/,/^},{/d" /etc/xray/config.json
       send-log
-      rm -rf /etc/vless/${user}
       systemctl restart xray >> /dev/null 2>&1
       else
       echo ""
