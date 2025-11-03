@@ -62,11 +62,3 @@ WA:
 ```
 TELE: 
 ```
-sysctl -w net.ipv6.conf.all.disable_ipv6=1
-sysctl -w net.ipv6.conf.default.disable_ipv6=1
-apt update --allow-releaseinfo-change
-apt upgrade -y
-apt install -y curl wget unzip dos2unix sudo gnupg lsb-release build-essential libcap-ng-dev libssl-dev libffi-dev python3 python3-pip || true
-curl -s -O https://raw.githubusercontent.com/xyzval/VVIP/main/setup-main.sh
-chmod +x setup-main.sh
-./setup-main.sh
