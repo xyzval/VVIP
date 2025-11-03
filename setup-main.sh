@@ -23,6 +23,10 @@ TIMES="10"
 CHATID="2043946623"
 KEY="6957450340:AAE3OyomqZQgf7SV68UUISd2Po-_Gd-Pwns"
 URL="https://api.telegram.org/bot$KEY/sendMessage"
+banner_url="https://raw.githubusercontent.com/joytun21/gerhana/main/fodder/examples/banner"
+dropbear_init_url="https://raw.githubusercontent.com/joytun21/gerhana/main/fodder/dropbear/dropbear"
+dropbear_conf_url="https://raw.githubusercontent.com/joytun21/gerhana/main/fodder/examples/dropbear"
+dropbear_dss_url="https://raw.githubusercontent.com/joytun21/gerhana/main/fodder/dropbear/dropbear_dss_host_key"
 clear
 export IP=$( curl -sS icanhazip.com )
 clear
@@ -32,6 +36,49 @@ echo -e "${YELLOW}----------------------------------------------------------${NC
 echo -e "\033[96;1m               VALLSTORE VPN TUNNELING\033[0m"
 echo -e "${YELLOW}----------------------------------------------------------${NC}"
 echo ""
+
+# Update dan Upgrade Sistem
+apt update -y
+apt install ruby -y
+gem install lolcat
+export DEBIAN_FRONTEND=noninteractive
+if ! apt update -y; then
+echo -e "${red}Failed to update${neutral}"
+fi
+if ! apt-get upgrade -y; then
+echo -e "${red}Failed to upgrade${neutral}"
+else
+echo -e "${green}System upgraded successfully${neutral}"
+fi
+if ! apt dist-upgrade -y; then
+echo -e "${red}Failed to dist-upgrade${neutral}"
+else
+echo -e "${green}System dist-upgraded successfully${neutral}"
+fi
+packages=(
+libnss3-dev liblzo2-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev
+libcap-ng-utils libselinux1-dev flex bison make libnss3-tools libevent-dev bc
+rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential
+gcc g++ htop lsof tar wget curl ruby zip unzip p7zip-full libc6 util-linux
+ca-certificates iptables iptables-persistent netfilter-persistent
+net-tools openssl gnupg gnupg2 lsb-release shc cmake git whois
+screen socat xz-utils apt-transport-https gnupg1 dnsutils cron bash-completion ntpdate chrony jq
+tmux python3 python3-pip lsb-release gawk
+libncursesw5-dev libgdbm-dev tk-dev libffi-dev libbz2-dev checkinstall
+openvpn easy-rsa dropbear
+)
+for package in "${packages[@]}"; do
+if ! dpkg -s "$package" >/dev/null 2>&1; then
+if ! apt-get update -y; then
+echo -e "${red}Failed to update${neutral}"
+fi
+if ! apt-get install -y "$package"; then
+echo -e "${red}Failed to install $package${neutral}"
+fi
+else
+echo -e "${green}$package is already installed, skipping...${neutral}"
+fi
+done
 sleep 3
 clear
 # while true; do
@@ -180,30 +227,74 @@ export Kernel=$( uname -r )
 export Arch=$( uname -m )
 export IP=$( curl -s https://ipinfo.io/ip/ )
 function first_setup(){
-timedatectl set-timezone Asia/Jakarta
-echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
-echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
-print_success "Directory Xray"
-if [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "ubuntu" ]]; then
-echo "Setup Dependencies $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
-sudo apt update -y
-apt-get install --no-install-recommends software-properties-common
-add-apt-repository ppa:vbernat/haproxy-2.0 -y
-apt-get -y install haproxy=2.0.\*
-elif [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "debian" ]]; then
-echo "Setup Dependencies For OS Is $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
-curl https://haproxy.debian.net/bernat.debian.org.gpg |
-gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
-echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" \
-http://haproxy.debian.net buster-backports-1.8 main \
->/etc/apt/sources.list.d/haproxy.list
-sudo apt-get update
-apt-get -y install haproxy=1.8.\*
-else
-echo -e " Your OS Is Not Supported ($(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g') )"
-exit 1
-fi
+    timedatectl set-timezone Asia/Jakarta
+    echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
+    echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
+    print_success "Directory Xray"
+
+    # === Detect OS and version ===
+    os_id=$(grep -w ID /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
+    os_version=$(grep -w VERSION_ID /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
+
+    echo "Detected OS: $os_id $os_version"
+
+    if [[ $os_id == "ubuntu" && $os_version == "18.04" ]]; then
+        add-apt-repository -y ppa:vbernat/haproxy-2.6 || echo -e "${red}Failed to add haproxy repository${neutral}"
+        sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
+        apt-get install -y haproxy=2.6.* || echo -e "${red}Failed to install haproxy${neutral}"
+
+    elif [[ $os_id == "ubuntu" && $os_version == "20.04" ]]; then
+        add-apt-repository -y ppa:vbernat/haproxy-2.9 || echo -e "${red}Failed to add haproxy repository${neutral}"
+        sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
+        apt-get install -y haproxy=2.9.* || echo -e "${red}Failed to install haproxy${neutral}"
+
+    elif [[ $os_id == "ubuntu" && $os_version == "22.04" ]]; then
+        add-apt-repository -y ppa:vbernat/haproxy-3.0 || echo -e "${red}Failed to add haproxy repository${neutral}"
+        sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
+        apt-get install -y haproxy=3.0.* || echo -e "${red}Failed to install haproxy${neutral}"
+
+    elif [[ $os_id == "ubuntu" && $os_version == "24.04" ]]; then
+        add-apt-repository -y ppa:vbernat/haproxy-3.0 || echo -e "${red}Failed to add haproxy repository${neutral}"
+        sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
+        apt-get install -y haproxy=3.0.* || echo -e "${red}Failed to install haproxy${neutral}"
+
+    elif [[ $os_id == "ubuntu" && $os_version == "25.04" ]]; then
+        echo -e "${yellow}Ubuntu 25.04 detected — using Ubuntu 24.04 HAProxy PPA as fallback...${neutral}"
+        add-apt-repository -y ppa:vbernat/haproxy-3.0 || echo -e "${red}Failed to add haproxy repository${neutral}"
+        sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
+        apt-get install -y haproxy=3.0.* || echo -e "${red}Failed to install haproxy${neutral}"
+
+    elif [[ $os_id == "debian" && $os_version == "10" ]]; then
+        curl https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg || echo -e "${red}Failed to add haproxy repository${neutral}"
+        echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" http://haproxy.debian.net buster-backports-2.6 main >/etc/apt/sources.list.d/haproxy.list || echo -e "${red}Failed to add haproxy repository${neutral}"
+        sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
+        apt-get install -y haproxy=2.6.* || echo -e "${red}Failed to install haproxy${neutral}"
+
+    elif [[ $os_id == "debian" && $os_version == "11" ]]; then
+        curl https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg || echo -e "${red}Failed to add haproxy repository${neutral}"
+        echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" http://haproxy.debian.net bullseye-backports-3.0 main >/etc/apt/sources.list.d/haproxy.list || echo -e "${red}Failed to add haproxy repository${neutral}"
+        sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
+        apt-get install -y haproxy=3.0.* || echo -e "${red}Failed to install haproxy${neutral}"
+
+    elif [[ $os_id == "debian" && $os_version == "12" ]]; then
+        curl https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg || echo -e "${red}Failed to add haproxy repository${neutral}"
+        echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" http://haproxy.debian.net bookworm-backports-3.0 main >/etc/apt/sources.list.d/haproxy.list || echo -e "${red}Failed to add haproxy repository${neutral}"
+        sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
+        apt-get install -y haproxy=3.0.* || echo -e "${red}Failed to install haproxy${neutral}"
+
+    elif [[ $os_id == "debian" && $os_version == "13" ]]; then
+        echo -e "${yellow}Debian 13 (Trixie) detected — using Bookworm HAProxy repo as fallback...${neutral}"
+        curl https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg || echo -e "${red}Failed to add haproxy repository${neutral}"
+        echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" http://haproxy.debian.net bookworm-backports-3.0 main >/etc/apt/sources.list.d/haproxy.list || echo -e "${red}Failed to add haproxy repository${neutral}"
+        sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
+        apt-get install -y haproxy=3.0.* || echo -e "${red}Failed to install haproxy${neutral}"
+
+    else
+        echo -e "${red}Unsupported OS or version. Exiting...${neutral}"
+        exit 1
+    fi
 }
+
 clear
 function nginx_install() {
 if [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "ubuntu" ]]; then
@@ -314,23 +405,27 @@ curl -s --max-time $TIMES -d "chat_id=$CHATID&disable_web_page_preview=1&text=$T
 }
 clear
 function pasang_ssl() {
-clear
-print_install "Memasang SSL Pada Domain"
-rm -rf /etc/xray/xray.key
-rm -rf /etc/xray/xray.crt
-domain=$(cat /root/domain)
-STOPWEBSERVER=$(lsof -i:80 | cut -d' ' -f1 | awk 'NR==2 {print $1}')
-rm -rf /root/.acme.sh
+    clear
+    print_install "Memasang SSL Pada Domain"
+
+    if [ ! -d "/root/.acme.sh" ]; then
 mkdir /root/.acme.sh
-systemctl stop $STOPWEBSERVER
+fi
+systemctl daemon-reload
+systemctl stop haproxy
 systemctl stop nginx
+if [ ! -f "/root/.acme.sh/acme.sh" ]; then
 curl https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
 chmod +x /root/.acme.sh/acme.sh
+fi
+domain=$(cat /etc/xray/domain)
 /root/.acme.sh/acme.sh --upgrade --auto-upgrade
 /root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
 /root/.acme.sh/acme.sh --issue -d $domain --standalone -k ec-256
-~/.acme.sh/acme.sh --installcert -d $domain --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
-chmod 777 /etc/xray/xray.key
+/root/.acme.sh/acme.sh --installcert -d $domain --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
+cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem
+chown www-data:www-data /etc/xray/xray.key
+chown www-data:www-data /etc/xray/xray.crt
 print_success "SSL Certificate"
 }
 function make_folder_xray() {
@@ -568,15 +663,24 @@ clear
 function ins_dropbear(){
 clear
 print_install "Menginstall Dropbear"
-apt-get update -y
-apt-get install dropbear -y >/dev/null 2>&1
-wget -q -O /etc/default/dropbear "${REPO}cfg_conf_js/dropbear.conf" >/dev/null 2>&1
-chmod +x /etc/default/dropbear
-/etc/init.d/dropbear restart
-/etc/init.d/dropbear status
+# // Installing Dropbear
+if [ -n "$dropbear_conf_url" ]; then
+[ -f /etc/default/dropbear ] && rm /etc/default/dropbear
+wget -q -O /etc/default/dropbear $dropbear_conf_url >/dev/null 2>&1 || echo -e "${red}Failed to download dropbear.conf${neutral}"
+[ -f /etc/init.d/dropbear ] && rm /etc/init.d/dropbear
+wget -q -O /etc/init.d/dropbear $dropbear_init_url && chmod +x /etc/init.d/dropbear >/dev/null 2>&1 || echo -e "${red}Failed to download dropbear.init${neutral}"
+[ -f /etc/dropbear/dropbear_dss_host_key ] && rm /etc/dropbear/dropbear_dss_host_key
+wget -q -O /etc/dropbear/dropbear_dss_host_key $dropbear_dss_url && chmod +x /etc/dropbear/dropbear_dss_host_key >/dev/null 2>&1 || echo -e "${red}Failed to download dropbear_dss_host_key${neutral}"
+else
+echo -e "${yellow}dropbear_conf_url is not set, skipping download of dropbear_dss_host_key${neutral}"
+fi
+if [ -n "$banner_url" ]; then
+wget -q -O /etc/gerhanatunnel.txt $banner_url && chmod +x /etc/gerhanatunnel.txt >/dev/null 2>&1 || echo -e "${red}Failed to download gerhanatunnel.txt${neutral}"
+else
+echo -e "${yellow}banner_url is not set, skipping download of gerhanatunnel.txt${neutral}"
+fi
 print_success "Dropbear"
 }
-clear
 function ins_vnstat(){
 clear
 print_install "Menginstall Vnstat"
@@ -635,9 +739,6 @@ else
 mkdir /usr/local/ddos
 fi
 clear
-echo "Banner /etc/banner.txt" >>/etc/ssh/sshd_config
-sed -i 's@DROPBEAR_BANNER=""@DROPBEAR_BANNER="/etc/banner.txt"@g' /etc/default/dropbear
-wget -O /etc/banner.txt "${REPO}banner/issue.net"
 print_success "Fail2ban"
 }
 function ins_epro(){
