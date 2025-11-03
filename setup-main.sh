@@ -477,30 +477,38 @@ cat >/etc/xray/.lock.db <<EOF
 EOF
 }
 function install_xray() {
-clear
-print_install "Core Xray 1.8.1 Latest Version"
-domainSock_dir="/run/xray";! [ -d $domainSock_dir ] && mkdir  $domainSock_dir
-chown www-data.www-data $domainSock_dir
-latest_version="$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases | grep tag_name | sed -E 's/.*"v(.*)".*/\1/' | head -n 1)"
-bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u www-data --version $latest_version
-wget -O /etc/xray/config.json "${REPO}cfg_conf_js/config.json" >/dev/null 2>&1
-wget -O /etc/systemd/system/runn.service "${REPO}files/runn.service" >/dev/null 2>&1
-domain=$(cat /etc/xray/domain)
-IPVS=$(cat /etc/xray/ipvps)
-print_success "Core Xray 1.8.1 Latest Version"
-clear
-curl -s ipinfo.io/city >>/etc/xray/city
-curl -s ipinfo.io/org | cut -d " " -f 2-10 >>/etc/xray/isp
-print_install "Memasang Konfigurasi Packet"
-wget -O /etc/haproxy/haproxy.cfg "${REPO}cfg_conf_js/haproxy.cfg" >/dev/null 2>&1
-wget -O /etc/nginx/conf.d/xray.conf "${REPO}cfg_conf_js/xray.conf" >/dev/null 2>&1
-sed -i "s/xxx/${domain}/g" /etc/haproxy/haproxy.cfg
-sed -i "s/xxx/${domain}/g" /etc/nginx/conf.d/xray.conf
-curl ${REPO}cfg_conf_js/nginx.conf > /etc/nginx/nginx.conf
-cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem
-chmod +x /etc/systemd/system/runn.service
-rm -rf /etc/systemd/system/xray.service.d
-cat >/etc/systemd/system/xray.service <<EOF
+    print_install "MENJALANKAN install_xray"
+    XRAY_VERSION="v25.1.30"
+    domainSock_dir="/run/xray"
+    ! [ -d "$domainSock_dir" ] && mkdir "$domainSock_dir"
+    chown www-data.www-data "$domainSock_dir"
+    print_ok "Memaksa menginstal Xray versi: $XRAY_VERSION"
+    bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" \
+        @ install -u www-data --version "$XRAY_VERSION" || {
+            print_error "Gagal menginstal Xray versi $XRAY_VERSION"
+            exit 1
+        }
+    print_ok "Memverifikasi versi Xray..."
+    /usr/local/bin/xray version
+    wget -O /etc/xray/config.json "${REPO}cfg_conf_js/config.json" || print_error "Gagal mengunduh config.json"
+    wget -O /etc/systemd/system/runn.service "${REPO}files/runn.service" || print_error "Gagal mengunduh runn.service"
+    domain="$DOMAIN"
+    IPVS="$ipsaya"
+    print_success "Core Xray $XRAY_VERSION"
+    clear
+    curl -s ipinfo.io/city >>/etc/xray/city
+    curl -s ipinfo.io/org | cut -d " " -f 2-10 >>/etc/xray/isp
+    print_install "Memasang Konfigurasi Packet"
+    wget -O /etc/haproxy/haproxy.cfg "${REPO}cfg_conf_js/haproxy.cfg"
+    wget -O /etc/nginx/conf.d/xray.conf "${REPO}cfg_conf_js/xray.conf"
+    sed -i "s/xxx/${domain}/g" /etc/haproxy/haproxy.cfg
+    sed -i "s/xxx/${domain}/g" /etc/nginx/conf.d/xray.conf
+    curl "${REPO}cfg_conf_js/nginx.conf" > /etc/nginx/nginx.conf
+    cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem
+    chmod +x /etc/systemd/system/runn.service
+    rm -rf /etc/systemd/system/xray.service.d
+    cat >/etc/systemd/system/xray.service <<EOF
+[Unit]
 Description=Xray Service
 Documentation=https://github.com
 After=network.target nss-lookup.target
@@ -512,12 +520,13 @@ NoNewPrivileges=true
 ExecStart=/usr/local/bin/xray run -config /etc/xray/config.json
 Restart=on-failure
 RestartPreventExitStatus=23
-filesNPROC=10000
-filesNOFILE=1000000
+LimitNPROC=10000
+LimitNOFILE=1000000
 [Install]
 WantedBy=multi-user.target
 EOF
-print_success "Konfigurasi Packet"
+    print_success "Konfigurasi Packet"
+    print_ok "install_xray SELESAI"
 }
 function ssh(){
 clear
