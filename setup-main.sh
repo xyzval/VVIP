@@ -429,53 +429,56 @@ chown www-data:www-data /etc/xray/xray.crt
 print_success "SSL Certificate"
 }
 function make_folder_xray() {
-rm -rf /etc/vmess/.vmess.db
-rm -rf /etc/vless/.vless.db
-rm -rf /etc/trojan/.trojan.db
-rm -rf /etc/shadowsocks/.shadowsocks.db
-rm -rf /etc/ssh/.ssh.db
-rm -rf /etc/bot/.bot.db
-mkdir -p /etc/bot
-mkdir -p /etc/xray
-mkdir -p /etc/vmess
-mkdir -p /etc/vless
-mkdir -p /etc/trojan
-mkdir -p /etc/shadowsocks
-mkdir -p /etc/ssh
-mkdir -p /usr/bin/xray/
-mkdir -p /var/log/xray/
-mkdir -p /var/www/html
-mkdir -p /etc/kyt/files/vmess/ip
-mkdir -p /etc/kyt/files/vless/ip
-mkdir -p /etc/kyt/files/trojan/ip
-mkdir -p /etc/kyt/files/ssh/ip
-mkdir -p /etc/files/vmess
-mkdir -p /etc/files/vless
-mkdir -p /etc/files/trojan
-mkdir -p /etc/files/ssh
-chmod +x /var/log/xray
-touch /etc/xray/domain
-touch /var/log/xray/access.log
-touch /var/log/xray/error.log
-touch /etc/vmess/.vmess.db
-touch /etc/vless/.vless.db
-touch /etc/trojan/.trojan.db
-touch /etc/shadowsocks/.shadowsocks.db
-touch /etc/ssh/.ssh.db
-touch /etc/bot/.bot.db
-touch /etc/xray/.lock.db
-echo "& plughin Account" >>/etc/vmess/.vmess.db
-echo "& plughin Account" >>/etc/vless/.vless.db
-echo "& plughin Account" >>/etc/trojan/.trojan.db
-echo "& plughin Account" >>/etc/shadowsocks/.shadowsocks.db
-echo "& plughin Account" >>/etc/ssh/.ssh.db
-cat >/etc/xray/.lock.db <<EOF
+    print_install "MENJALANKAN make_folder_xray"
+    rm -rf /etc/vmess/.vmess.db
+    rm -rf /etc/vless/.vless.db
+    rm -rf /etc/trojan/.trojan.db
+    rm -rf /etc/shadowsocks/.shadowsocks.db
+    rm -rf /etc/ssh/.ssh.db
+    rm -rf /etc/bot/.bot.db
+    mkdir -p /etc/bot
+    mkdir -p /etc/vmess
+    mkdir -p /etc/vless
+    mkdir -p /etc/trojan
+    mkdir -p /etc/shadowsocks
+    mkdir -p /etc/ssh
+    mkdir -p /usr/bin/xray/
+    mkdir -p /var/log/xray/
+    mkdir -p /var/www/html
+    mkdir -p /etc/kyt/files/vmess/ip
+    mkdir -p /etc/kyt/files/vless/ip
+    mkdir -p /etc/kyt/files/trojan/ip
+    mkdir -p /etc/kyt/files/ssh/ip
+    mkdir -p /etc/files/vmess
+    mkdir -p /etc/files/vless
+    mkdir -p /etc/files/trojan
+    mkdir -p /etc/files/ssh
+    chmod +x /var/log/xray
+    touch /etc/xray/domain
+    touch /var/log/xray/access.log
+    touch /var/log/xray/error.log
+    touch /etc/vmess/.vmess.db
+    touch /etc/vless/.vless.db
+    touch /etc/trojan/.trojan.db
+    touch /etc/shadowsocks/.shadowsocks.db
+    touch /etc/ssh/.ssh.db
+    touch /etc/bot/.bot.db
+    touch /etc/xray/.lock.db
+    echo "& plughin Account" >>/etc/vmess/.vmess.db
+    echo "& plughin Account" >>/etc/vless/.vless.db
+    echo "& plughin Account" >>/etc/trojan/.trojan.db
+    echo "& plughin Account" >>/etc/shadowsocks/.shadowsocks.db
+    echo "& plughin Account" >>/etc/ssh/.ssh.db
+    cat >/etc/xray/.lock.db <<EOF
 #vmess
 #vless
 #trojan
 #ss
 EOF
+    print_ok "Folder dan file Xray berhasil dibuat."
+    print_ok "make_folder_xray SELESAI"
 }
+
 function install_xray() {
     print_install "MENJALANKAN install_xray"
     XRAY_VERSION="v25.1.30"
