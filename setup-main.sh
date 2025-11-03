@@ -429,89 +429,78 @@ chown www-data:www-data /etc/xray/xray.crt
 print_success "SSL Certificate"
 }
 function make_folder_xray() {
-    print_install "MENJALANKAN make_folder_xray"
-    rm -rf /etc/vmess/.vmess.db
-    rm -rf /etc/vless/.vless.db
-    rm -rf /etc/trojan/.trojan.db
-    rm -rf /etc/shadowsocks/.shadowsocks.db
-    rm -rf /etc/ssh/.ssh.db
-    rm -rf /etc/bot/.bot.db
-    mkdir -p /etc/bot
-    mkdir -p /etc/vmess
-    mkdir -p /etc/vless
-    mkdir -p /etc/trojan
-    mkdir -p /etc/shadowsocks
-    mkdir -p /etc/ssh
-    mkdir -p /usr/bin/xray/
-    mkdir -p /var/log/xray/
-    mkdir -p /var/www/html
-    mkdir -p /etc/kyt/files/vmess/ip
-    mkdir -p /etc/kyt/files/vless/ip
-    mkdir -p /etc/kyt/files/trojan/ip
-    mkdir -p /etc/kyt/files/ssh/ip
-    mkdir -p /etc/files/vmess
-    mkdir -p /etc/files/vless
-    mkdir -p /etc/files/trojan
-    mkdir -p /etc/files/ssh
-    chmod +x /var/log/xray
-    touch /etc/xray/domain
-    touch /var/log/xray/access.log
-    touch /var/log/xray/error.log
-    touch /etc/vmess/.vmess.db
-    touch /etc/vless/.vless.db
-    touch /etc/trojan/.trojan.db
-    touch /etc/shadowsocks/.shadowsocks.db
-    touch /etc/ssh/.ssh.db
-    touch /etc/bot/.bot.db
-    touch /etc/xray/.lock.db
-    echo "& plughin Account" >>/etc/vmess/.vmess.db
-    echo "& plughin Account" >>/etc/vless/.vless.db
-    echo "& plughin Account" >>/etc/trojan/.trojan.db
-    echo "& plughin Account" >>/etc/shadowsocks/.shadowsocks.db
-    echo "& plughin Account" >>/etc/ssh/.ssh.db
-    cat >/etc/xray/.lock.db <<EOF
+rm -rf /etc/vmess/.vmess.db
+rm -rf /etc/vless/.vless.db
+rm -rf /etc/trojan/.trojan.db
+rm -rf /etc/shadowsocks/.shadowsocks.db
+rm -rf /etc/ssh/.ssh.db
+rm -rf /etc/bot/.bot.db
+mkdir -p /etc/bot
+mkdir -p /etc/xray
+mkdir -p /etc/vmess
+mkdir -p /etc/vless
+mkdir -p /etc/trojan
+mkdir -p /etc/shadowsocks
+mkdir -p /etc/ssh
+mkdir -p /usr/bin/xray/
+mkdir -p /var/log/xray/
+mkdir -p /var/www/html
+mkdir -p /etc/kyt/files/vmess/ip
+mkdir -p /etc/kyt/files/vless/ip
+mkdir -p /etc/kyt/files/trojan/ip
+mkdir -p /etc/kyt/files/ssh/ip
+mkdir -p /etc/files/vmess
+mkdir -p /etc/files/vless
+mkdir -p /etc/files/trojan
+mkdir -p /etc/files/ssh
+chmod +x /var/log/xray
+touch /etc/xray/domain
+touch /var/log/xray/access.log
+touch /var/log/xray/error.log
+touch /etc/vmess/.vmess.db
+touch /etc/vless/.vless.db
+touch /etc/trojan/.trojan.db
+touch /etc/shadowsocks/.shadowsocks.db
+touch /etc/ssh/.ssh.db
+touch /etc/bot/.bot.db
+touch /etc/xray/.lock.db
+echo "& plughin Account" >>/etc/vmess/.vmess.db
+echo "& plughin Account" >>/etc/vless/.vless.db
+echo "& plughin Account" >>/etc/trojan/.trojan.db
+echo "& plughin Account" >>/etc/shadowsocks/.shadowsocks.db
+echo "& plughin Account" >>/etc/ssh/.ssh.db
+cat >/etc/xray/.lock.db <<EOF
 #vmess
 #vless
 #trojan
 #ss
 EOF
-    print_ok "Folder dan file Xray berhasil dibuat."
-    print_ok "make_folder_xray SELESAI"
 }
-
 function install_xray() {
-    print_install "MENJALANKAN install_xray"
-    XRAY_VERSION="v25.1.30"
-    domainSock_dir="/run/xray"
-    ! [ -d "$domainSock_dir" ] && mkdir "$domainSock_dir"
-    chown www-data.www-data "$domainSock_dir"
-    print_ok "Memaksa menginstal Xray versi: $XRAY_VERSION"
-    bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" \
-        @ install -u www-data --version "$XRAY_VERSION" || {
-            print_error "Gagal menginstal Xray versi $XRAY_VERSION"
-            exit 1
-        }
-    print_ok "Memverifikasi versi Xray..."
-    /usr/local/bin/xray version
-    wget -O /etc/xray/config.json "${REPO}cfg_conf_js/config.json" || print_error "Gagal mengunduh config.json"
-    wget -O /etc/systemd/system/runn.service "${REPO}files/runn.service" || print_error "Gagal mengunduh runn.service"
-    domain="$DOMAIN"
-    IPVS="$ipsaya"
-    print_success "Core Xray $XRAY_VERSION"
-    clear
-    curl -s ipinfo.io/city >>/etc/xray/city
-    curl -s ipinfo.io/org | cut -d " " -f 2-10 >>/etc/xray/isp
-    print_install "Memasang Konfigurasi Packet"
-    wget -O /etc/haproxy/haproxy.cfg "${REPO}cfg_conf_js/haproxy.cfg"
-    wget -O /etc/nginx/conf.d/xray.conf "${REPO}cfg_conf_js/xray.conf"
-    sed -i "s/xxx/${domain}/g" /etc/haproxy/haproxy.cfg
-    sed -i "s/xxx/${domain}/g" /etc/nginx/conf.d/xray.conf
-    curl "${REPO}cfg_conf_js/nginx.conf" > /etc/nginx/nginx.conf
-    cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem
-    chmod +x /etc/systemd/system/runn.service
-    rm -rf /etc/systemd/system/xray.service.d
-    cat >/etc/systemd/system/xray.service <<EOF
-[Unit]
+clear
+print_install "Core Xray 1.8.1 Latest Version"
+domainSock_dir="/run/xray";! [ -d $domainSock_dir ] && mkdir  $domainSock_dir
+chown www-data.www-data $domainSock_dir
+bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u www-data --version 1.8.3
+wget -O /etc/xray/config.json "${REPO}cfg_conf_js/config.json" >/dev/null 2>&1
+wget -O /etc/systemd/system/runn.service "${REPO}files/runn.service" >/dev/null 2>&1
+domain=$(cat /etc/xray/domain)
+IPVS=$(cat /etc/xray/ipvps)
+print_success "Core Xray 1.8.1 Latest Version"
+clear
+curl -s ipinfo.io/city >>/etc/xray/city
+curl -s ipinfo.io/org | cut -d " " -f 2-10 >>/etc/xray/isp
+print_install "Memasang Konfigurasi Packet"
+wget -O /etc/haproxy/haproxy.cfg "${REPO}cfg_conf_js/haproxy.cfg" >/dev/null 2>&1
+wget -O /etc/nginx/conf.d/xray.conf "${REPO}cfg_conf_js/xray.conf" >/dev/null 2>&1
+sed -i "s/xxx/${domain}/g" /etc/haproxy/haproxy.cfg
+sed -i "s/xxx/${domain}/g" /etc/nginx/conf.d/xray.conf
+curl ${REPO}cfg_conf_js/nginx.conf > /etc/nginx/nginx.conf
+cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem
+chmod +x /etc/systemd/system/runn.service
+rm -rf /etc/systemd/system/xray.service.d
+rm -rf /etc/systemd/system/xray@.service.d
+cat >/etc/systemd/system/xray.service <<EOF
 Description=Xray Service
 Documentation=https://github.com
 After=network.target nss-lookup.target
@@ -523,13 +512,12 @@ NoNewPrivileges=true
 ExecStart=/usr/local/bin/xray run -config /etc/xray/config.json
 Restart=on-failure
 RestartPreventExitStatus=23
-LimitNPROC=10000
-LimitNOFILE=1000000
+filesNPROC=10000
+filesNOFILE=1000000
 [Install]
 WantedBy=multi-user.target
 EOF
-    print_success "Konfigurasi Packet"
-    print_ok "install_xray SELESAI"
+print_success "Konfigurasi Packet"
 }
 function ssh(){
 clear
