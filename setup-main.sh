@@ -21,12 +21,7 @@ TIME=$(date '+%d %b %Y')
 ipsaya=$(wget -qO- ipinfo.io/ip)
 TIMES="10"
 CHATID="2043946623"
-KEY="6957450340:AAE3OyomqZQgf7SV68UUISd2Po-_Gd-Pwns"
-URL="https://api.telegram.org/bot$KEY/sendMessage"
-banner_url="https://raw.githubusercontent.com/joytun21/gerhana/main/fodder/examples/banner"
-dropbear_init_url="https://raw.githubusercontent.com/joytun21/gerhana/main/fodder/dropbear/dropbear"
-dropbear_conf_url="https://raw.githubusercontent.com/joytun21/gerhana/main/fodder/examples/dropbear"
-dropbear_dss_url="https://raw.githubusercontent.com/joytun21/gerhana/main/fodder/dropbear/dropbear_dss_host_key"
+KEY="6957450340:AAE3OymqZQgf7SV68UUISd2Po-_Gd-Pwns"
 clear
 export IP=$( curl -sS icanhazip.com )
 clear
