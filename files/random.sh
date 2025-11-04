@@ -6,7 +6,7 @@ domain="tryn.cloud"
 sub=$(</dev/urandom tr -dc a-z0-9 | head -c5)
 IP=$(wget -qO- icanhazip.com)
 CF_KEY="e54ac7edea27dbef7cc1fdb13025d47da45c2"
-CF_ID="nvtryn@gmail.com"
+CF_ID="nvatryn@gmail.com"
 
 dns="${sub}.${domain}"
 
