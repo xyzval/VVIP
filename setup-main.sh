@@ -730,16 +730,22 @@ wget ${REPO}files/bbr.sh &&  chmod +x bbr.sh && ./bbr.sh
 print_success "Swap 1 G"
 }
 function ins_Fail2ban(){
-clear
-print_install "Menginstall Fail2ban"
-if [ -d '/usr/local/ddos' ]; then
-echo; echo; echo "Please un-install the previous version first"
-exit 0
-else
-mkdir /usr/local/ddos
-fi
-clear
-print_success "Fail2ban"
+    print_install "MENJALANKAN ins_Fail2ban"
+    if [ -d '/usr/local/ddos' ]; then
+        print_error "Please un-install the previous DDOS version first"
+        exit 1
+    else
+        mkdir -p /usr/local/ddos
+        print_ok "Direktori /usr/local/ddos dibuat."
+    fi
+    print_ok "Menginstal Fail2ban..."
+    apt install -y fail2ban || print_error "Gagal menginstal Fail2ban."
+    echo "Banner /etc/banner.txt" >>/etc/ssh/sshd_config
+    sed -i 's@^DROPBEAR_BANNER=.*@DROPBEAR_BANNER="/etc/banner.txt"@g' /etc/default/dropbear
+    print_ok "Mengunduh banner..."
+    wget -O /etc/banner.txt "${REPO}banner/issue.net" || print_error "Gagal mengunduh banner."
+    print_success "Fail2ban"
+    print_ok "ins_Fail2ban SELESAI"
 }
 function ins_epro(){
 clear
