@@ -2,11 +2,11 @@
 apt update && apt install -y jq curl
 
 # Configuration
-domain="sahvip.web.id"
+domain="tryn.cloud"
 sub=$(</dev/urandom tr -dc a-z0-9 | head -c5)
 IP=$(wget -qO- icanhazip.com)
-CF_KEY="dc7a32077573505cc082f4be752509a5c5a3e"
-CF_ID="bowowiwendi@gmail.com"
+CF_KEY="e54ac7edea27dbef7cc1fdb13025d47da45c2"
+CF_ID="nvtryn@gmail.com"
 
 dns="${sub}.${domain}"
 
