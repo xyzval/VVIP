@@ -661,25 +661,18 @@ print_success "SSHD"
 }
 clear
 function ins_dropbear(){
-clear
-print_install "Menginstall Dropbear"
-# // Installing Dropbear
-if [ -n "$dropbear_conf_url" ]; then
-[ -f /etc/default/dropbear ] && rm /etc/default/dropbear
-wget -q -O /etc/default/dropbear $dropbear_conf_url >/dev/null 2>&1 || echo -e "${red}Failed to download dropbear.conf${neutral}"
-[ -f /etc/init.d/dropbear ] && rm /etc/init.d/dropbear
-wget -q -O /etc/init.d/dropbear $dropbear_init_url && chmod +x /etc/init.d/dropbear >/dev/null 2>&1 || echo -e "${red}Failed to download dropbear.init${neutral}"
-[ -f /etc/dropbear/dropbear_dss_host_key ] && rm /etc/dropbear/dropbear_dss_host_key
-wget -q -O /etc/dropbear/dropbear_dss_host_key $dropbear_dss_url && chmod +x /etc/dropbear/dropbear_dss_host_key >/dev/null 2>&1 || echo -e "${red}Failed to download dropbear_dss_host_key${neutral}"
-else
-echo -e "${yellow}dropbear_conf_url is not set, skipping download of dropbear_dss_host_key${neutral}"
-fi
-if [ -n "$banner_url" ]; then
-wget -q -O /etc/gerhanatunnel.txt $banner_url && chmod +x /etc/gerhanatunnel.txt >/dev/null 2>&1 || echo -e "${red}Failed to download gerhanatunnel.txt${neutral}"
-else
-echo -e "${yellow}banner_url is not set, skipping download of gerhanatunnel.txt${neutral}"
-fi
-print_success "Dropbear"
+    print_install "MENJALANKAN ins_dropbear"
+    print_ok "Memperbarui daftar paket dan menginstal Dropbear..."
+    apt update -y
+    apt install dropbear -y || print_error "Gagal menginstal Dropbear."
+    print_ok "Mengunduh konfigurasi Dropbear..."
+    wget -q -O /etc/default/dropbear "${REPO}cfg_conf_js/dropbear.conf" || print_error "Gagal mengunduh konfigurasi Dropbear."
+    chmod 644 /etc/default/dropbear
+    print_ok "Permission konfigurasi Dropbear diatur ke 644."
+    print_ok "Merestart layanan Dropbear..."
+    systemctl restart dropbear || print_error "Gagal merestart layanan Dropbear."
+    print_success "Dropbear"
+    print_ok "ins_dropbear SELESAI"
 }
 function ins_vnstat(){
 clear
