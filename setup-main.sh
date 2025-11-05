@@ -1099,7 +1099,7 @@ sleep 2
 clear
 echo -e ""
 echo -e "\033[96m====================================================\033[0m"
-echo -e "\033[92m                  INSTALL SUCCES\033[0m"
+echo -e "\033[92m                  BUAH DUKU BUAH SIRSAK ASU LO\033[0m"
 echo -e "\033[96m====================================================\033[0m"
 echo -e ""
 reboot
