@@ -180,30 +180,74 @@ export Kernel=$( uname -r )
 export Arch=$( uname -m )
 export IP=$( curl -s https://ipinfo.io/ip/ )
 function first_setup(){
-timedatectl set-timezone Asia/Jakarta
-echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
-echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
-print_success "Directory Xray"
-if [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "ubuntu" ]]; then
-echo "Setup Dependencies $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
-sudo apt update -y
-apt-get install --no-install-recommends software-properties-common
-add-apt-repository ppa:vbernat/haproxy-2.0 -y
-apt-get -y install haproxy=2.0.\*
-elif [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "debian" ]]; then
-echo "Setup Dependencies For OS Is $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
-curl https://haproxy.debian.net/bernat.debian.org.gpg |
-gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg
-echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" \
-http://haproxy.debian.net buster-backports-1.8 main \
->/etc/apt/sources.list.d/haproxy.list
-sudo apt-get update
-apt-get -y install haproxy=1.8.\*
-else
-echo -e " Your OS Is Not Supported ($(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g') )"
-exit 1
-fi
+    timedatectl set-timezone Asia/Jakarta
+    echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
+    echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
+    print_success "Directory Xray"
+
+    # === Detect OS and version ===
+    os_id=$(grep -w ID /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
+    os_version=$(grep -w VERSION_ID /etc/os-release | head -n1 | cut -d= -f2 | tr -d '"')
+
+    echo "Detected OS: $os_id $os_version"
+
+    if [[ $os_id == "ubuntu" && $os_version == "18.04" ]]; then
+        add-apt-repository -y ppa:vbernat/haproxy-2.6 || echo -e "${red}Failed to add haproxy repository${neutral}"
+        sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
+        apt-get install -y haproxy=2.6.* || echo -e "${red}Failed to install haproxy${neutral}"
+
+    elif [[ $os_id == "ubuntu" && $os_version == "20.04" ]]; then
+        add-apt-repository -y ppa:vbernat/haproxy-2.9 || echo -e "${red}Failed to add haproxy repository${neutral}"
+        sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
+        apt-get install -y haproxy=2.9.* || echo -e "${red}Failed to install haproxy${neutral}"
+
+    elif [[ $os_id == "ubuntu" && $os_version == "22.04" ]]; then
+        add-apt-repository -y ppa:vbernat/haproxy-3.0 || echo -e "${red}Failed to add haproxy repository${neutral}"
+        sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
+        apt-get install -y haproxy=3.0.* || echo -e "${red}Failed to install haproxy${neutral}"
+
+    elif [[ $os_id == "ubuntu" && $os_version == "24.04" ]]; then
+        add-apt-repository -y ppa:vbernat/haproxy-3.0 || echo -e "${red}Failed to add haproxy repository${neutral}"
+        sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
+        apt-get install -y haproxy=3.0.* || echo -e "${red}Failed to install haproxy${neutral}"
+
+    elif [[ $os_id == "ubuntu" && $os_version == "25.04" ]]; then
+        echo -e "${yellow}Ubuntu 25.04 detected — using Ubuntu 24.04 HAProxy PPA as fallback...${neutral}"
+        add-apt-repository -y ppa:vbernat/haproxy-3.0 || echo -e "${red}Failed to add haproxy repository${neutral}"
+        sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
+        apt-get install -y haproxy=3.0.* || echo -e "${red}Failed to install haproxy${neutral}"
+
+    elif [[ $os_id == "debian" && $os_version == "10" ]]; then
+        curl https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg || echo -e "${red}Failed to add haproxy repository${neutral}"
+        echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" http://haproxy.debian.net buster-backports-2.6 main >/etc/apt/sources.list.d/haproxy.list || echo -e "${red}Failed to add haproxy repository${neutral}"
+        sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
+        apt-get install -y haproxy=2.6.* || echo -e "${red}Failed to install haproxy${neutral}"
+
+    elif [[ $os_id == "debian" && $os_version == "11" ]]; then
+        curl https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg || echo -e "${red}Failed to add haproxy repository${neutral}"
+        echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" http://haproxy.debian.net bullseye-backports-3.0 main >/etc/apt/sources.list.d/haproxy.list || echo -e "${red}Failed to add haproxy repository${neutral}"
+        sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
+        apt-get install -y haproxy=3.0.* || echo -e "${red}Failed to install haproxy${neutral}"
+
+    elif [[ $os_id == "debian" && $os_version == "12" ]]; then
+        curl https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg || echo -e "${red}Failed to add haproxy repository${neutral}"
+        echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" http://haproxy.debian.net bookworm-backports-3.0 main >/etc/apt/sources.list.d/haproxy.list || echo -e "${red}Failed to add haproxy repository${neutral}"
+        sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
+        apt-get install -y haproxy=3.0.* || echo -e "${red}Failed to install haproxy${neutral}"
+
+    elif [[ $os_id == "debian" && $os_version == "13" ]]; then
+        echo -e "${yellow}Debian 13 (Trixie) detected — using Bookworm HAProxy repo as fallback...${neutral}"
+        curl https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor >/usr/share/keyrings/haproxy.debian.net.gpg || echo -e "${red}Failed to add haproxy repository${neutral}"
+        echo deb "[signed-by=/usr/share/keyrings/haproxy.debian.net.gpg]" http://haproxy.debian.net bookworm-backports-3.0 main >/etc/apt/sources.list.d/haproxy.list || echo -e "${red}Failed to add haproxy repository${neutral}"
+        sudo apt update -y || echo -e "${red}Failed to update package list${neutral}"
+        apt-get install -y haproxy=3.0.* || echo -e "${red}Failed to install haproxy${neutral}"
+
+    else
+        echo -e "${red}Unsupported OS or version. Exiting...${neutral}"
+        exit 1
+    fi
 }
+
 clear
 function nginx_install() {
 if [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "ubuntu" ]]; then
@@ -252,6 +296,182 @@ echo -e "===================================================="
 echo -e "   |\e[1;32mPlease Select a Domain Type Below \e[0m|"
 echo -e "===================================================="
 echo -e "     \e[1;32m1)\e[0m Your Domain"
+echo -e "     \e[1;32m2)\e[0m Random Domain "
+echo -e "===================================================="
+read -p "   Please select numbers 1-2 or Any Button(Random) : " host
+echo ""
+if [[ $host == "1" ]]; then
+echo -e "\e[1;32m====================================================$NC"
+echo -e "\e[1;36m     INPUT SUBDOMAIN $NC"
+echo -e "\e[1;32m====================================================$NC"
+echo -e "\033[91;1m contoh subdomain :\033[0m \033[93 wendi.ssh.cloud\033[0m"
+read -p "SUBDOMAIN :  " host1
+echo "IP=" >> /var/lib/kyt/ipvps.conf
+echo $host1 > /etc/xray/domain
+echo $host1 > /etc/xray/scdomain
+echo $host1 > /etc/v2ray/domain
+echo $host1 > /root/domain
+echo $host1 > /root/scdomain
+echo ""
+print_install "Subdomain/Domain is Used"
+clear
+elif [[ $host == "2" ]]; then
+wget ${REPO}files/cf.sh && chmod +x cf.sh && ./cf.sh
+rm -f /root/cf.sh
+clear
+else
+print_install "Random Subdomain/Domain is Used"
+clear
+fi
+}
+clear
+restart_system() {
+USRSC=$(wget -qO- https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep $ipsaya | awk '{print $2}')
+EXPSC=$(wget -qO- https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep $ipsaya | awk '{print $3}')
+TIMEZONE=$(printf '%(%H:%M:%S)T')
+RX=$(cat /dev/urandom | tr -dc 'A-Za-z0-9' | head -c 8) # Menghasilkan nomor acak antara 1000 dan 9999
+TEXT="
+<code>────────────────────</code>
+<b>✨ DETAIL VPS ANDA ✨</b>
+<code>────────────────────</code>
+<code>ID     : </code><code>$USRSC</code>
+<code>Domain : </code><code>$domain</code>
+<code>Wilcard: </code><code>*.$domain</code>
+<code>Date   : </code><code>$TIME</code>
+<code>Time   : </code><code>$TIMEZONE</code>
+<code>Ip vps : </code><code>$MYIP</code>
+<code>Exp Sc : </code><code>$EXPSC</code>
+<code>User   : </code><code>root</code>
+<code>PASSWD : </code><code>$passwd</code>
+<code>────────────────────</code>
+<code>TRX #$RX Transaksi Succes VPS
+────────────────────  
+║▌║║▌║▌║║▌║║▌║▌║║▌║║
+𝗖𝗢𝗡𝗧𝗔𝗖𝗧 :
+💬𝗧𝗘𝗟𝗘𝗚𝗥𝗔𝗠
+☞ @nvtryn
+💬𝗪𝗛𝗔𝗧𝗦𝗔𝗣𝗣
+☞ +6282300115583</code>
+<i>Simpan Baik-baik informasi ini tidak akan di kirim Ulang </i>
+"'&reply_markup={"inline_keyboard":[[{"text":"ᴏʀᴅᴇʀ","url":"https://t.me/wendivpn"},{"text":"Contack","url":"https://wa.me/6283153170199"}]]}'
+curl -s --max-time $TIMES -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
+}
+clear
+function pasang_ssl() {
+clear
+print_install "Memasang SSL Pada Domain"
+rm -rf /etc/xray/xray.key
+rm -rf /etc/xray/xray.crt
+domain=$(cat /root/domain)
+STOPWEBSERVER=$(lsof -i:80 | cut -d' ' -f1 | awk 'NR==2 {print $1}')
+rm -rf /root/.acme.sh
+mkdir /root/.acme.sh
+systemctl stop $STOPWEBSERVER
+systemctl stop nginx
+curl https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
+chmod +x /root/.acme.sh/acme.sh
+/root/.acme.sh/acme.sh --upgrade --auto-upgrade
+/root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
+/root/.acme.sh/acme.sh --issue -d $domain --standalone -k ec-256
+~/.acme.sh/acme.sh --installcert -d $domain --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
+chmod 777 /etc/xray/xray.key
+print_success "SSL Certificate"
+}
+function make_folder_xray() {
+rm -rf /etc/vmess/.vmess.db
+rm -rf /etc/vless/.vless.db
+rm -rf /etc/trojan/.trojan.db
+rm -rf /etc/shadowsocks/.shadowsocks.db
+rm -rf /etc/ssh/.ssh.db
+rm -rf /etc/bot/.bot.db
+mkdir -p /etc/bot
+mkdir -p /etc/xray
+mkdir -p /etc/vmess
+mkdir -p /etc/vless
+mkdir -p /etc/trojan
+mkdir -p /etc/shadowsocks
+mkdir -p /etc/ssh
+mkdir -p /usr/bin/xray/
+mkdir -p /var/log/xray/
+mkdir -p /var/www/html
+mkdir -p /etc/kyt/files/vmess/ip
+mkdir -p /etc/kyt/files/vless/ip
+mkdir -p /etc/kyt/files/trojan/ip
+mkdir -p /etc/kyt/files/ssh/ip
+mkdir -p /etc/files/vmess
+mkdir -p /etc/files/vless
+mkdir -p /etc/files/trojan
+mkdir -p /etc/files/ssh
+chmod +x /var/log/xray
+touch /etc/xray/domain
+touch /var/log/xray/access.log
+touch /var/log/xray/error.log
+touch /etc/vmess/.vmess.db
+touch /etc/vless/.vless.db
+touch /etc/trojan/.trojan.db
+touch /etc/shadowsocks/.shadowsocks.db
+touch /etc/ssh/.ssh.db
+touch /etc/bot/.bot.db
+touch /etc/xray/.lock.db
+echo "& plughin Account" >>/etc/vmess/.vmess.db
+echo "& plughin Account" >>/etc/vless/.vless.db
+echo "& plughin Account" >>/etc/trojan/.trojan.db
+echo "& plughin Account" >>/etc/shadowsocks/.shadowsocks.db
+echo "& plughin Account" >>/etc/ssh/.ssh.db
+cat >/etc/xray/.lock.db <<EOF
+#vmess
+#vless
+#trojan
+#ss
+EOF
+}
+function install_xray() {
+clear
+print_install "Core Xray Latest Version"
+
+# Pastikan direktori socket ada
+domainSock_dir="/run/xray"
+if [ ! -d "$domainSock_dir" ]; then
+    mkdir -p "$domainSock_dir"
+fi
+chown www-data:www-data "$domainSock_dir"
+
+# Ambil versi terbaru dari GitHub API
+latest_version="$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases/latest | grep tag_name | sed -E 's/.*"v(.*)".*/\1/')"
+
+# Instal Xray sesuai versi terbaru
+bash <(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh) install -u www-data --version "$latest_version"
+
+# Pastikan variabel REPO sudah didefinisikan, misalnya:
+# REPO="https://raw.githubusercontent.com/xyzval/Manage-Xray/main/"
+REPO="https://raw.githubusercontent.com/xyzval/Manage-Xray/main/"
+
+# Unduh konfigurasi dasar
+wget -O /etc/xray/config.json "${REPO}cfg_conf_js/config.json" >/dev/null 2>&1
+wget -O /etc/systemd/system/runn.service "${REPO}files/runn.service" >/dev/null 2>&1
+
+domain=$(cat /etc/xray/domain 2>/dev/null || echo "yourdomain.com")
+IPVS=$(cat /etc/xray/ipvps 2>/dev/null || echo "127.0.0.1")
+
+print_success "Core Xray v${latest_version} Terpasang"
+clear
+
+# Tambahkan info lokasi
+curl -s ipinfo.io/city >>/etc/xray/city
+curl -s ipinfo.io/org | cut -d " " -f 2-10 >>/etc/xray/isp
+
+print_install "Memasang Konfigurasi Paket Pendukung"
+
+# Unduh file konfigurasi haproxy & nginx
+wget -O /etc/haproxy/haproxy.cfg "${REPO}cfg_conf_js/haproxy.cfg" >/dev/null 2>&1
+wget -O /etc/nginx/conf.d/xray.conf "${REPO}cfg_conf_js/xray.conf" >/dev/null 2>&1
+
+# Ganti placeholder domain di file konfigurasi
+sed -i "s/xxx/${domain}/g" /etc/haproxy/haproxy.cfg
+sed -i "s/xxx/${domain}/g" /etc/nginx/conf.d/xray.conf
+
+# Unduh nginx.conf utama
+curl -s   \e[1;32m1)\e[0m Your Domain"
 echo -e "     \e[1;32m2)\e[0m Random Domain "
 echo -e "===================================================="
 read -p "   Please select numbers 1-2 or Any Button(Random) : " host
