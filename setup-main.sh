@@ -427,182 +427,46 @@ EOF
 }
 function install_xray() {
 clear
-print_install "Core Xray Latest Version"
-
-# Pastikan direktori socket ada
-domainSock_dir="/run/xray"
-if [ ! -d "$domainSock_dir" ]; then
-    mkdir -p "$domainSock_dir"
-fi
-chown www-data:www-data "$domainSock_dir"
-
-# Ambil versi terbaru dari GitHub API
-latest_version="$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases/latest | grep tag_name | sed -E 's/.*"v(.*)".*/\1/')"
-
-# Instal Xray sesuai versi terbaru
-bash <(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh) install -u www-data --version "$latest_version"
-
-# Pastikan variabel REPO sudah didefinisikan, misalnya:
-# REPO="https://raw.githubusercontent.com/xyzval/Manage-Xray/main/"
-REPO="https://raw.githubusercontent.com/xyzval/Manage-Xray/main/"
-
-# Unduh konfigurasi dasar
+print_install "Core Xray 1.8.1 Latest Version"
+domainSock_dir="/run/xray";! [ -d $domainSock_dir ] && mkdir  $domainSock_dir
+chown www-data.www-data $domainSock_dir
+latest_version="$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases | grep tag_name | sed -E 's/.*"v(.*)".*/\1/' | head -n 1)"
+bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u www-data --version $latest_version
 wget -O /etc/xray/config.json "${REPO}cfg_conf_js/config.json" >/dev/null 2>&1
 wget -O /etc/systemd/system/runn.service "${REPO}files/runn.service" >/dev/null 2>&1
-
-domain=$(cat /etc/xray/domain 2>/dev/null || echo "yourdomain.com")
-IPVS=$(cat /etc/xray/ipvps 2>/dev/null || echo "127.0.0.1")
-
-print_success "Core Xray v${latest_version} Terpasang"
+domain=$(cat /etc/xray/domain)
+IPVS=$(cat /etc/xray/ipvps)
+print_success "Core Xray 1.8.1 Latest Version"
 clear
-
-# Tambahkan info lokasi
 curl -s ipinfo.io/city >>/etc/xray/city
 curl -s ipinfo.io/org | cut -d " " -f 2-10 >>/etc/xray/isp
-
-print_install "Memasang Konfigurasi Paket Pendukung"
-
-# Unduh file konfigurasi haproxy & nginx
+print_install "Memasang Konfigurasi Packet"
 wget -O /etc/haproxy/haproxy.cfg "${REPO}cfg_conf_js/haproxy.cfg" >/dev/null 2>&1
 wget -O /etc/nginx/conf.d/xray.conf "${REPO}cfg_conf_js/xray.conf" >/dev/null 2>&1
-
-# Ganti placeholder domain di file konfigurasi
 sed -i "s/xxx/${domain}/g" /etc/haproxy/haproxy.cfg
 sed -i "s/xxx/${domain}/g" /etc/nginx/conf.d/xray.conf
-
-# Unduh nginx.conf utama
-curl -s   \e[1;32m1)\e[0m Your Domain"
-echo -e "     \e[1;32m2)\e[0m Random Domain "
-echo -e "===================================================="
-read -p "   Please select numbers 1-2 or Any Button(Random) : " host
-echo ""
-if [[ $host == "1" ]]; then
-echo -e "\e[1;32m====================================================$NC"
-echo -e "\e[1;36m     INPUT SUBDOMAIN $NC"
-echo -e "\e[1;32m====================================================$NC"
-echo -e "\033[91;1m contoh subdomain :\033[0m \033[93 wendi.ssh.cloud\033[0m"
-read -p "SUBDOMAIN :  " host1
-echo "IP=" >> /var/lib/kyt/ipvps.conf
-echo $host1 > /etc/xray/domain
-echo $host1 > /etc/xray/scdomain
-echo $host1 > /etc/v2ray/domain
-echo $host1 > /root/domain
-echo $host1 > /root/scdomain
-echo ""
-print_install "Subdomain/Domain is Used"
-clear
-elif [[ $host == "2" ]]; then
-wget ${REPO}files/cf.sh && chmod +x cf.sh && ./cf.sh
-rm -f /root/cf.sh
-clear
-else
-print_install "Random Subdomain/Domain is Used"
-clear
-fi
-}
-clear
-restart_system() {
-USRSC=$(wget -qO- https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep $ipsaya | awk '{print $2}')
-EXPSC=$(wget -qO- https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep $ipsaya | awk '{print $3}')
-TIMEZONE=$(printf '%(%H:%M:%S)T')
-RX=$(cat /dev/urandom | tr -dc 'A-Za-z0-9' | head -c 8) # Menghasilkan nomor acak antara 1000 dan 9999
-TEXT="
-<code>────────────────────</code>
-<b>✨ DETAIL VPS ANDA ✨</b>
-<code>────────────────────</code>
-<code>ID     : </code><code>$USRSC</code>
-<code>Domain : </code><code>$domain</code>
-<code>Wilcard: </code><code>*.$domain</code>
-<code>Date   : </code><code>$TIME</code>
-<code>Time   : </code><code>$TIMEZONE</code>
-<code>Ip vps : </code><code>$MYIP</code>
-<code>Exp Sc : </code><code>$EXPSC</code>
-<code>User   : </code><code>root</code>
-<code>PASSWD : </code><code>$passwd</code>
-<code>────────────────────</code>
-<code>TRX #$RX Transaksi Succes VPS
-────────────────────  
-║▌║║▌║▌║║▌║║▌║▌║║▌║║
-𝗖𝗢𝗡𝗧𝗔𝗖𝗧 :
-💬𝗧𝗘𝗟𝗘𝗚𝗥𝗔𝗠
-☞ @nvtryn
-💬𝗪𝗛𝗔𝗧𝗦𝗔𝗣𝗣
-☞ +6282300115583</code>
-<i>Simpan Baik-baik informasi ini tidak akan di kirim Ulang </i>
-"'&reply_markup={"inline_keyboard":[[{"text":"ᴏʀᴅᴇʀ","url":"https://t.me/wendivpn"},{"text":"Contack","url":"https://wa.me/6283153170199"}]]}'
-curl -s --max-time $TIMES -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
-}
-clear
-function pasang_ssl() {
-clear
-print_install "Memasang SSL Pada Domain"
-rm -rf /etc/xray/xray.key
-rm -rf /etc/xray/xray.crt
-domain=$(cat /root/domain)
-STOPWEBSERVER=$(lsof -i:80 | cut -d' ' -f1 | awk 'NR==2 {print $1}')
-rm -rf /root/.acme.sh
-mkdir /root/.acme.sh
-systemctl stop $STOPWEBSERVER
-systemctl stop nginx
-curl https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
-chmod +x /root/.acme.sh/acme.sh
-/root/.acme.sh/acme.sh --upgrade --auto-upgrade
-/root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
-/root/.acme.sh/acme.sh --issue -d $domain --standalone -k ec-256
-~/.acme.sh/acme.sh --installcert -d $domain --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
-chmod 777 /etc/xray/xray.key
-print_success "SSL Certificate"
-}
-function make_folder_xray() {
-rm -rf /etc/vmess/.vmess.db
-rm -rf /etc/vless/.vless.db
-rm -rf /etc/trojan/.trojan.db
-rm -rf /etc/shadowsocks/.shadowsocks.db
-rm -rf /etc/ssh/.ssh.db
-rm -rf /etc/bot/.bot.db
-mkdir -p /etc/bot
-mkdir -p /etc/xray
-mkdir -p /etc/vmess
-mkdir -p /etc/vless
-mkdir -p /etc/trojan
-mkdir -p /etc/shadowsocks
-mkdir -p /etc/ssh
-mkdir -p /usr/bin/xray/
-mkdir -p /var/log/xray/
-mkdir -p /var/www/html
-mkdir -p /etc/kyt/files/vmess/ip
-mkdir -p /etc/kyt/files/vless/ip
-mkdir -p /etc/kyt/files/trojan/ip
-mkdir -p /etc/kyt/files/ssh/ip
-mkdir -p /etc/files/vmess
-mkdir -p /etc/files/vless
-mkdir -p /etc/files/trojan
-mkdir -p /etc/files/ssh
-chmod +x /var/log/xray
-touch /etc/xray/domain
-touch /var/log/xray/access.log
-touch /var/log/xray/error.log
-touch /etc/vmess/.vmess.db
-touch /etc/vless/.vless.db
-touch /etc/trojan/.trojan.db
-touch /etc/shadowsocks/.shadowsocks.db
-touch /etc/ssh/.ssh.db
-touch /etc/bot/.bot.db
-touch /etc/xray/.lock.db
-echo "& plughin Account" >>/etc/vmess/.vmess.db
-echo "& plughin Account" >>/etc/vless/.vless.db
-echo "& plughin Account" >>/etc/trojan/.trojan.db
-echo "& plughin Account" >>/etc/shadowsocks/.shadowsocks.db
-echo "& plughin Account" >>/etc/ssh/.ssh.db
-cat >/etc/xray/.lock.db <<EOF
-#vmess
-#vless
-#trojan
-#ss
+curl ${REPO}cfg_conf_js/nginx.conf > /etc/nginx/nginx.conf
+cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem
+chmod +x /etc/systemd/system/runn.service
+rm -rf /etc/systemd/system/xray.service.d
+cat >/etc/systemd/system/xray.service <<EOF
+Description=Xray Service
+Documentation=https://github.com
+After=network.target nss-lookup.target
+[Service]
+User=www-data
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+ExecStart=/usr/local/bin/xray run -config /etc/xray/config.json
+Restart=on-failure
+RestartPreventExitStatus=23
+filesNPROC=10000
+filesNOFILE=1000000
+[Install]
+WantedBy=multi-user.target
 EOF
-}
-journalctl -u xray.service --since "10 minutes ago" -n 50
-
+print_success "Konfigurasi Packet"
 }
 function ssh(){
 clear
@@ -1059,7 +923,7 @@ sleep 2
 clear
 echo -e ""
 echo -e "\033[96m====================================================\033[0m"
-echo -e "\033[92m                  BUAH DUKU BUAH SIRSAK ASU LO\033[0m"
+echo -e "\033[92m                  INSTALL SUCCES\033[0m"
 echo -e "\033[96m====================================================\033[0m"
 echo -e ""
 reboot
