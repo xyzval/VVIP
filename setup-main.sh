@@ -311,26 +311,189 @@ fi
 # --- 4. Instalasi Paket Utama (Titik Percepatan Maksimum) ---
 
 
+export DEBIAN_FRONTEND=noninteractive
 
-# Menggabungkan seluruh daftar paket ke dalam SATU perintah tunggal.
 
-# Ini menghilangkan overhead dari puluhan pemanggilan dpkg dan apt install.
 
-echo -e "\n${green}--> 3. Menginstal SEMUA paket yang dibutuhkan dalam satu batch...${neutral}"
+# --- 2. Initial Setup: Ruby and lolcat (Still necessary) ---
 
-if ! apt install -y "${ALL_PACKAGES[@]}"; then
+echo -e "${green}Running initial package update and basic dependencies...${neutral}"
 
-    echo -e "${red}Gagal menginstal beberapa paket utama. Coba jalankan secara manual untuk detail.${neutral}"
 
-else
 
-    echo -e "${green}Semua paket berhasil dipasang dengan sangat cepat!${neutral}" | lolcat
+# Run update once
+
+if ! apt update -y; then
+
+    echo -e "${red}Failed to run initial apt update. Please check network connection.${neutral}"
+
+    exit 1
 
 fi
 
 
 
-echo -e "\n${green}Skrip setup selesai!${neutral}" | lolcat
+# Install Ruby if not present (required for lolcat)
+
+if ! dpkg -s ruby >/dev/null 2>&1; then
+
+    echo -e "${green}Installing Ruby...${neutral}"
+
+    if ! apt install ruby -y; then
+
+        echo -e "${red}Failed to install Ruby.${neutral}"
+
+    fi
+
+fi
+
+
+
+# Install lolcat (if Ruby was installed)
+
+if command -v ruby &> /dev/null; then
+
+    if ! gem list -i lolcat; then
+
+        echo -e "${green}Installing lolcat...${neutral}"
+
+        if ! gem install lolcat; then
+
+            echo -e "${red}Failed to install lolcat gem.${neutral}"
+
+        fi
+
+    else
+
+        echo -e "${green}lolcat is already installed, skipping...${neutral}"
+
+    fi
+
+fi
+
+
+
+# --- 3. System Upgrades (Combined) ---
+
+echo -e "\n${green}Starting system upgrades (upgrade & dist-upgrade)...${neutral}"
+
+
+
+if ! apt-get upgrade -y; then
+
+    echo -e "${red}Failed to run apt-get upgrade.${neutral}"
+
+fi
+
+
+
+if ! apt dist-upgrade -y; then
+
+    echo -e "${red}Failed to run apt dist-upgrade.${neutral}"
+
+else
+
+    echo -e "${green}System upgrade complete.${neutral}"
+
+fi
+
+
+
+
+
+# --- 4. Optimized Package Installation (The main speedup) ---
+
+
+
+# Define the full list of packages
+
+packages=(
+
+libnss3-dev liblzo2-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev
+
+libcap-ng-utils libselinux1-dev flex bison make libnss3-tools libevent-dev bc
+
+rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential
+
+gcc g++ htop lsof tar wget curl ruby zip unzip p7zip-full libc6 util-linux
+
+ca-certificates iptables iptables-persistent netfilter-persistent
+
+net-tools openssl gnupg gnupg2 lsb-release shc cmake git whois
+
+screen socat xz-utils apt-transport-https gnupg1 dnsutils cron bash-completion ntpdate chrony jq
+
+tmux python3 python3-pip lsb-release gawk
+
+libncursesw5-dev libgdbm-dev tk-dev libffi-dev libbz2-dev checkinstall
+
+openvpn easy-rsa dropbear
+
+)
+
+
+
+# Create an array to hold only the missing packages
+
+missing_packages=()
+
+
+
+echo -e "\n${green}Checking which packages are missing...${neutral}"
+
+
+
+# Iterate and check which packages need installation
+
+for package in "${packages[@]}"; do
+
+    if ! dpkg -s "$package" >/dev/null 2>&1; then
+
+        missing_packages+=("$package")
+
+    else
+
+        echo -e "${green}$package is already installed, skipping...${neutral}"
+
+    fi
+
+done
+
+
+
+# Install all missing packages in one command
+
+if [ ${#missing_packages[@]} -gt 0 ]; then
+
+    echo -e "\n${green}Installing ${#missing_packages[@]} missing packages in a single batch...${neutral}"
+
+    
+
+    # Convert array to space-separated string for apt install
+
+    install_list="${missing_packages[*]}"
+
+
+
+    if ! apt-get install -y $install_list; then
+
+        echo -e "${red}Failed to install one or more packages: $install_list${neutral}"
+
+    else
+
+        echo -e "${green}All required packages installed successfully!${neutral}"
+
+    fi
+
+else
+
+    echo -e "\n${green}All packages are already installed. No further action needed.${neutral}"
+
+fi
+
+
+
+echo -e "${green}Setup script finished!${neutral}"
 sleep 3
 clear
 # while true; do
