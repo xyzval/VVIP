@@ -481,118 +481,57 @@ net-tools openssl gnupg gnupg2 lsb-release shc cmake git whois
 socat xz-utils apt-transport-https gnupg1 dnsutils cron bash-completion ntpdate chrony jq
 
 tmux python3 python3-pip lsb-release gawk
+export IP=$( curl -sS icanhazip.com )
+clear
+clear && clear && clear
+clear;clear;clear
+echo -e "${YELLOW}----------------------------------------------------------${NC}"
+echo -e "\033[96;1m               VALLSTORE VPN TUNNELING\033[0m"
+echo -e "${YELLOW}----------------------------------------------------------${NC}"
+echo ""
 
-libncursesw5-dev libgdbm-dev tk-dev libffi-dev libbz2-dev checkinstall
-
-openvpn easy-rsa dropbear
-
-)
-
-
-
-# --- 2. Pembaruan Sistem (Hanya Satu Kali Update) ---
-
-echo -e "\n${green}--> 1. Memperbarui daftar paket (apt update)...${neutral}"
-
+# Update dan Upgrade Sistem
+apt update -y
+apt install ruby -y
+gem install lolcat
+export DEBIAN_FRONTEND=noninteractive
 if ! apt update -y; then
-
-    echo -e "${red}Gagal memperbarui daftar paket. Periksa koneksi jaringan.${neutral}"
-
-    exit 1
-
+echo -e "${red}Failed to update${neutral}"
 fi
-
-
-
-echo -e "\n${green}--> 2. Upgrade Sistem (Upgrade & Dist-Upgrade)...${neutral}"
-
-if ! apt upgrade -y && apt dist-upgrade -y; then
-
-    echo -e "${red}Gagal menjalankan upgrade sistem. Melanjutkan instalasi paket...${neutral}"
-
+if ! apt-get upgrade -y; then
+echo -e "${red}Failed to upgrade${neutral}"
 else
-
-    echo -e "${green}Upgrade sistem selesai.${neutral}"
-
+echo -e "${green}System upgraded successfully${neutral}"
 fi
-
-
-
-# --- 3. Instalasi Paket Pra-syarat (Ruby, Screen) ---
-
-
-
-# Instal Ruby dan Screen secara terpisah
-
-# Ruby harus diinstal sebelum lolcat. Screen diinstal terpisah untuk menghindari termination.
-
-PREREQ_PACKAGES=("ruby" "screen")
-
-echo -e "\n${green}--> 3. Menginstal paket prasyarat (Ruby, Screen)...${neutral}"
-
-for package in "${PREREQ_PACKAGES[@]}"; do
-
-    if ! dpkg -s "$package" >/dev/null 2>&1; then
-
-        echo -e "${green}Menginstal $package...${neutral}"
-
-        if ! apt install "$package" -y; then
-
-            echo -e "${red}Gagal menginstal $package.${neutral}"
-
-        fi
-
-    else
-
-        echo -e "${green}$package sudah terinstal.${neutral}"
-
-    fi
-
+if ! apt dist-upgrade -y; then
+echo -e "${red}Failed to dist-upgrade${neutral}"
+else
+echo -e "${green}System dist-upgraded successfully${neutral}"
+fi
+packages=(
+libnss3-dev liblzo2-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev
+libcap-ng-utils libselinux1-dev flex bison make libnss3-tools libevent-dev bc
+rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential
+gcc g++ htop lsof tar wget curl ruby zip unzip p7zip-full libc6 util-linux
+ca-certificates iptables iptables-persistent netfilter-persistent
+net-tools openssl gnupg gnupg2 lsb-release shc cmake git whois
+screen socat xz-utils apt-transport-https gnupg1 dnsutils cron bash-completion ntpdate chrony jq
+tmux python3 python3-pip lsb-release gawk
+libncursesw5-dev libgdbm-dev tk-dev libffi-dev libbz2-dev checkinstall
+openvpn easy-rsa dropbear
+)
+for package in "${packages[@]}"; do
+if ! dpkg -s "$package" >/dev/null 2>&1; then
+if ! apt-get update -y; then
+echo -e "${red}Failed to update${neutral}"
+fi
+if ! apt-get install -y "$package"; then
+echo -e "${red}Failed to install $package${neutral}"
+fi
+else
+echo -e "${green}$package is already installed, skipping...${neutral}"
+fi
 done
-
-
-
-# Instal lolcat (gem)
-
-if command -v ruby &> /dev/null; then
-
-    if ! gem list -i lolcat; then
-
-        echo -e "${green}Menginstal lolcat (gem)...${neutral}"
-
-        if ! gem install lolcat; then
-
-            echo -e "${red}Gagal menginstal lolcat gem.${neutral}"
-
-        fi
-
-    fi
-
-fi
-
-
-
-
-
-# --- 4. Instalasi Paket Utama (Titik Percepatan Maksimum) ---
-
-
-
-echo -e "\n${green}--> 4. Menginstal SEMUA paket yang tersisa dalam satu batch...${neutral}"
-
-if ! apt install -y "${ALL_PACKAGES[@]}"; then
-
-    echo -e "${red}Gagal menginstal beberapa paket utama. Coba jalankan secara manual untuk detail.${neutral}"
-
-else
-
-    echo -e "${green}Semua paket berhasil dipasang dengan cepat!${neutral}" | lolcat
-
-fi
-
-
-
-echo -e "\n${green}Skrip setup selesai!${neutral}" | lolcat
 sleep 3
 clear
 # while true; do
