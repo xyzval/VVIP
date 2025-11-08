@@ -37,55 +37,6 @@ echo -e "\033[96;1m               VALLSTORE VPN TUNNELING\033[0m"
 echo -e "${YELLOW}----------------------------------------------------------${NC}"
 echo ""
 
-
-
-ChatGPT
-Anda bilang:
-apa anda bisa coding script
-ChatGPT bilang:
-Tentu bisa! 😊
-Saya bisa membantu menulis, menjelaskan, atau memperbaiki kode (script) dalam berbagai bahasa pemrograman — seperti:
-
-🐍 Python
-
-💻 JavaScript / TypeScript
-
-⚙️ C / C++ / C#
-
-☕ Java
-
-🧱 HTML / CSS / React / Node.js
-
-🐘 PHP / SQL
-
-🐳 Docker / Bash / PowerShell
-
-dan banyak lagi
-
-Kamu ingin saya buatkan script apa?
-Misalnya: “Buat script Python untuk mengambil data dari API dan simpan ke Excel” atau “Buat website sederhana dengan login form”.
-
-Anda bilang:
-perpendek agar tidak lama saat menginstalnya apa bisa
-ChatGPT bilang:
-Bisa banget 👍
-
-Tergantung konteksnya, ada beberapa cara untuk memperpendek atau mempercepat proses instalasi script:
-
-🧩 Kurangi dependensi — hanya pakai library yang benar-benar dibutuhkan.
-
-⚡ Gunakan versi ringan — misalnya, numpy bisa diganti dengan operasi Python standar kalau sederhana.
-
-📦 Gunakan virtual environment / requirements minimal — file requirements.txt berisi hanya paket penting.
-
-🚀 Gunakan build atau bundle — kalau di web, bisa di-bundle jadi satu file (misal pakai esbuild atau vite).
-
-🐳 Gunakan Docker image kecil — misal dari alpine, bukan ubuntu.
-
-Kalau kamu kasih tahu script atau proyek yang dimaksud, saya bisa bantu optimalkan agar instalasinya jauh lebih cepat dan ringan.
-Boleh kirim contohnya?
-
-Anda bilang:
 # Update dan Upgrade Sistem
 apt update -y
 apt install ruby -y
@@ -130,53 +81,6 @@ fi
 done
 sleep 3
 clear
-ChatGPT bilang:
-Bagus — itu script bash untuk update sistem dan instalasi paket Linux. Tapi memang lumayan berat dan lama karena:
-
-Banyak paket diinstal satu per satu.
-
-Ada beberapa kali apt update yang berulang.
-
-Tidak pakai opsi paralel atau penggabungan instalasi.
-
-Berikut versi lebih ringkas & cepat, tapi tetap dengan fungsi yang sama 👇
-
-#!/bin/bash
-# Warna (opsional)
-green='\033[0;32m'
-red='\033[0;31m'
-neutral='\033[0m'
-
-export DEBIAN_FRONTEND=noninteractive
-
-echo -e "${green}Updating system...${neutral}"
-apt update -y && apt upgrade -y && apt dist-upgrade -y
-
-# Install Ruby & lolcat
-apt install -y ruby && gem install lolcat
-
-# Daftar paket utama
-packages=(
-  libnss3-dev liblzo2-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev
-  libcap-ng-utils libselinux1-dev flex bison make libnss3-tools libevent-dev bc
-  rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential
-  gcc g++ htop lsof tar wget curl ruby zip unzip p7zip-full libc6 util-linux
-  ca-certificates iptables iptables-persistent netfilter-persistent
-  net-tools openssl gnupg gnupg2 lsb-release shc cmake git whois
-  screen socat xz-utils apt-transport-https dnsutils cron bash-completion ntpdate chrony jq
-  tmux python3 python3-pip gawk
-  libncursesw5-dev libgdbm-dev tk-dev libffi-dev libbz2-dev checkinstall
-  openvpn easy-rsa dropbear
-)
-
-echo -e "${green}Installing required packages...${neutral}"
-apt install -y "${packages[@]}"
-
-echo -e "${green}Cleaning up...${neutral}"
-apt autoremove -y && apt clean
-
-clear
-echo -e "${green}✅ System setup completed successfully!${neutral}"
 # while true; do
 #     read -s -p "Password : " passwd
 #     echo
