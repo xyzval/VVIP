@@ -23,6 +23,10 @@ TIMES="10"
 CHATID="2043946623"
 KEY="6957450340:AAE3OyomqZQgf7SV68UUISd2Po-_Gd-Pwns"
 URL="https://api.telegram.org/bot$KEY/sendMessage"
+banner_url="https://raw.githubusercontent.com/joytun21/gerhana/main/fodder/examples/banner"
+dropbear_init_url="https://raw.githubusercontent.com/joytun21/gerhana/main/fodder/dropbear/dropbear"
+dropbear_conf_url="https://raw.githubusercontent.com/joytun21/gerhana/main/fodder/examples/dropbear"
+dropbear_dss_url="https://raw.githubusercontent.com/joytun21/gerhana/main/fodder/dropbear/dropbear_dss_host_key"
 clear
 export IP=$( curl -sS icanhazip.com )
 clear
@@ -401,23 +405,27 @@ curl -s --max-time $TIMES -d "chat_id=$CHATID&disable_web_page_preview=1&text=$T
 }
 clear
 function pasang_ssl() {
-clear
-print_install "Memasang SSL Pada Domain"
-rm -rf /etc/xray/xray.key
-rm -rf /etc/xray/xray.crt
-domain=$(cat /root/domain)
-STOPWEBSERVER=$(lsof -i:80 | cut -d' ' -f1 | awk 'NR==2 {print $1}')
-rm -rf /root/.acme.sh
+    clear
+    print_install "Memasang SSL Pada Domain"
+
+    if [ ! -d "/root/.acme.sh" ]; then
 mkdir /root/.acme.sh
-systemctl stop $STOPWEBSERVER
+fi
+systemctl daemon-reload
+systemctl stop haproxy
 systemctl stop nginx
+if [ ! -f "/root/.acme.sh/acme.sh" ]; then
 curl https://acme-install.netlify.app/acme.sh -o /root/.acme.sh/acme.sh
 chmod +x /root/.acme.sh/acme.sh
+fi
+domain=$(cat /etc/xray/domain)
 /root/.acme.sh/acme.sh --upgrade --auto-upgrade
 /root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
 /root/.acme.sh/acme.sh --issue -d $domain --standalone -k ec-256
-~/.acme.sh/acme.sh --installcert -d $domain --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
-chmod 777 /etc/xray/xray.key
+/root/.acme.sh/acme.sh --installcert -d $domain --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
+cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem
+chown www-data:www-data /etc/xray/xray.key
+chown www-data:www-data /etc/xray/xray.crt
 print_success "SSL Certificate"
 }
 function make_folder_xray() {
@@ -473,8 +481,7 @@ clear
 print_install "Core Xray 1.8.1 Latest Version"
 domainSock_dir="/run/xray";! [ -d $domainSock_dir ] && mkdir  $domainSock_dir
 chown www-data.www-data $domainSock_dir
-latest_version="$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases | grep tag_name | sed -E 's/.*"v(.*)".*/\1/' | head -n 1)"
-bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u www-data --version $latest_version
+bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u www-data --version 1.8.3
 wget -O /etc/xray/config.json "${REPO}cfg_conf_js/config.json" >/dev/null 2>&1
 wget -O /etc/systemd/system/runn.service "${REPO}files/runn.service" >/dev/null 2>&1
 domain=$(cat /etc/xray/domain)
@@ -492,6 +499,7 @@ curl ${REPO}cfg_conf_js/nginx.conf > /etc/nginx/nginx.conf
 cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem
 chmod +x /etc/systemd/system/runn.service
 rm -rf /etc/systemd/system/xray.service.d
+rm -rf /etc/systemd/system/xray@.service.d
 cat >/etc/systemd/system/xray.service <<EOF
 Description=Xray Service
 Documentation=https://github.com
@@ -565,7 +573,7 @@ print_success "Password SSH"
 function udp_mini(){
 clear
 print_install "Memasang Service limit Quota"
-wget raw.githubusercontent.com/xyzval/VVIP/main/files/limit.sh && chmod +x limit.sh && ./limit.sh
+wget raw.githubusercontent.com/bowowiwendi/WendyVpn/ABSTRAK/files/limit.sh && chmod +x limit.sh && ./limit.sh
 cd
 wget -q -O /usr/bin/limit-ip "${REPO}files/limit-ip"
 chmod +x /usr/bin/*
@@ -655,15 +663,24 @@ clear
 function ins_dropbear(){
 clear
 print_install "Menginstall Dropbear"
-apt-get update -y
-apt-get install dropbear -y >/dev/null 2>&1
-wget -q -O /etc/default/dropbear "${REPO}cfg_conf_js/dropbear.conf" >/dev/null 2>&1
-chmod +x /etc/default/dropbear
-/etc/init.d/dropbear restart
-/etc/init.d/dropbear status
+# // Installing Dropbear
+if [ -n "$dropbear_conf_url" ]; then
+[ -f /etc/default/dropbear ] && rm /etc/default/dropbear
+wget -q -O /etc/default/dropbear $dropbear_conf_url >/dev/null 2>&1 || echo -e "${red}Failed to download dropbear.conf${neutral}"
+[ -f /etc/init.d/dropbear ] && rm /etc/init.d/dropbear
+wget -q -O /etc/init.d/dropbear $dropbear_init_url && chmod +x /etc/init.d/dropbear >/dev/null 2>&1 || echo -e "${red}Failed to download dropbear.init${neutral}"
+[ -f /etc/dropbear/dropbear_dss_host_key ] && rm /etc/dropbear/dropbear_dss_host_key
+wget -q -O /etc/dropbear/dropbear_dss_host_key $dropbear_dss_url && chmod +x /etc/dropbear/dropbear_dss_host_key >/dev/null 2>&1 || echo -e "${red}Failed to download dropbear_dss_host_key${neutral}"
+else
+echo -e "${yellow}dropbear_conf_url is not set, skipping download of dropbear_dss_host_key${neutral}"
+fi
+if [ -n "$banner_url" ]; then
+wget -q -O /etc/gerhanatunnel.txt $banner_url && chmod +x /etc/gerhanatunnel.txt >/dev/null 2>&1 || echo -e "${red}Failed to download gerhanatunnel.txt${neutral}"
+else
+echo -e "${yellow}banner_url is not set, skipping download of gerhanatunnel.txt${neutral}"
+fi
 print_success "Dropbear"
 }
-clear
 function ins_vnstat(){
 clear
 print_install "Menginstall Vnstat"
@@ -722,9 +739,6 @@ else
 mkdir /usr/local/ddos
 fi
 clear
-echo "Banner /etc/banner.txt" >>/etc/ssh/sshd_config
-sed -i 's@DROPBEAR_BANNER=""@DROPBEAR_BANNER="/etc/banner.txt"@g' /etc/default/dropbear
-wget -O /etc/banner.txt "${REPO}banner/issue.net"
 print_success "Fail2ban"
 }
 function ins_epro(){
