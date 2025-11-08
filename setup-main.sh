@@ -204,24 +204,133 @@ if [ ${#missing_packages[@]} -gt 0 ]; then
 
 
     if ! apt-get install -y $install_list; then
+export DEBIAN_FRONTEND=noninteractive
 
-        echo -e "${red}Failed to install one or more packages: $install_list${neutral}"
+export LC_ALL=C # Meningkatkan kecepatan pemrosesan teks
 
-    else
 
-        echo -e "${green}All required packages installed successfully!${neutral}"
 
-    fi
+echo -e "${green}Memulai konfigurasi sistem cepat...${neutral}" | lolcat
 
-else
 
-    echo -e "\n${green}All packages are already installed. No further action needed.${neutral}"
+
+# Daftar lengkap semua paket yang dibutuhkan
+
+ALL_PACKAGES=(
+
+libnss3-dev liblzo2-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev
+
+libcap-ng-utils libselinux1-dev flex bison make libnss3-tools libevent-dev bc
+
+rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential
+
+gcc g++ htop lsof tar wget curl ruby zip unzip p7zip-full libc6 util-linux
+
+ca-certificates iptables iptables-persistent netfilter-persistent
+
+net-tools openssl gnupg gnupg2 lsb-release shc cmake git whois
+
+screen socat xz-utils apt-transport-https gnupg1 dnsutils cron bash-completion ntpdate chrony jq
+
+tmux python3 python3-pip lsb-release gawk
+
+libncursesw5-dev libgdbm-dev tk-dev libffi-dev libbz2-dev checkinstall
+
+openvpn easy-rsa dropbear
+
+)
+
+
+
+# --- 2. Pembaruan Sistem (Hanya Satu Kali Update) ---
+
+echo -e "\n${green}--> 1. Memperbarui daftar paket (apt update)...${neutral}"
+
+if ! apt update -y; then
+
+    echo -e "${red}Gagal memperbarui daftar paket. Periksa koneksi jaringan.${neutral}"
+
+    exit 1
 
 fi
 
 
 
-echo -e "${green}Setup script finished!${neutral}"
+echo -e "\n${green}--> 2. Upgrade Sistem (Upgrade & Dist-Upgrade)...${neutral}"
+
+if ! apt upgrade -y && apt dist-upgrade -y; then
+
+    echo -e "${red}Gagal menjalankan upgrade sistem. Melanjutkan instalasi paket...${neutral}"
+
+else
+
+    echo -e "${green}Upgrade sistem selesai.${neutral}"
+
+fi
+
+
+
+# --- 3. Instalasi Ruby dan lolcat (Perlu Instalasi Gem) ---
+
+# Menginstal Ruby jika belum ada untuk memastikan lolcat bisa dipasang.
+
+if ! dpkg -s ruby >/dev/null 2>&1; then
+
+    echo -e "${green}Menginstal Ruby (diperlukan untuk lolcat)...${neutral}"
+
+    if ! apt install ruby -y; then
+
+        echo -e "${red}Gagal menginstal Ruby.${neutral}"
+
+    fi
+
+fi
+
+
+
+if command -v ruby &> /dev/null; then
+
+    if ! gem list -i lolcat; then
+
+        echo -e "${green}Menginstal lolcat (gem)...${neutral}"
+
+        if ! gem install lolcat; then
+
+            echo -e "${red}Gagal menginstal lolcat gem.${neutral}"
+
+        fi
+
+    fi
+
+fi
+
+
+
+
+
+# --- 4. Instalasi Paket Utama (Titik Percepatan Maksimum) ---
+
+
+
+# Menggabungkan seluruh daftar paket ke dalam SATU perintah tunggal.
+
+# Ini menghilangkan overhead dari puluhan pemanggilan dpkg dan apt install.
+
+echo -e "\n${green}--> 3. Menginstal SEMUA paket yang dibutuhkan dalam satu batch...${neutral}"
+
+if ! apt install -y "${ALL_PACKAGES[@]}"; then
+
+    echo -e "${red}Gagal menginstal beberapa paket utama. Coba jalankan secara manual untuk detail.${neutral}"
+
+else
+
+    echo -e "${green}Semua paket berhasil dipasang dengan sangat cepat!${neutral}" | lolcat
+
+fi
+
+
+
+echo -e "\n${green}Skrip setup selesai!${neutral}" | lolcat
 sleep 3
 clear
 # while true; do
