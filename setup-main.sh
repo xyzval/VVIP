@@ -119,9 +119,9 @@ clear
 # ============================================================
 echo -e "\e[32mloading...\e[0m"
 rm -f /usr/bin/user
-username=$(curl -s https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep $MYIP | awk '{print $2}')
+username=$(curl -s https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep -F "$MYIP" | awk '{print $2}')
 echo "$username" >/usr/bin/user
-valid=$(curl -s https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep $MYIP | awk '{print $3}')
+valid=$(curl -s https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep -F "$MYIP" | awk '{print $3}')
 echo "$valid" >/usr/bin/e
 exp=$(cat /usr/bin/e)
 
@@ -132,7 +132,7 @@ d2=$(date -d "$DATE" +%s)
 Info="(${green}Active${NC})"
 Error="(${RED}ExpiRED${NC})"
 today=$(date -d "0 days" +"%Y-%m-%d")
-Exp1=$(curl -s https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep $MYIP | awk '{print $4}')
+Exp1=$(curl -s https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep -F "$MYIP" | awk '{print $4}')
 if [[ $today < $Exp1 ]]; then
     sts="${Info}"
 else
@@ -571,7 +571,7 @@ END
 function udp_mini() {
     clear
     print_install "Installing Limit Quota Service"
-    wget -q raw.githubusercontent.com/bowowiwendi/WendyVpn/ABSTRAK/files/limit.sh && chmod +x limit.sh && ./limit.sh
+    wget -q https://raw.githubusercontent.com/bowowiwendi/WendyVpn/ABSTRAK/files/limit.sh && chmod +x limit.sh && ./limit.sh
     cd /root
 
     wget -q -O /usr/bin/limit-ip "${REPO}files/limit-ip"
@@ -808,7 +808,7 @@ function ins_epro() {
     iptables -A FORWARD -m string --algo bm --string "announce" -j DROP
     iptables -A FORWARD -m string --algo bm --string "info_hash" -j DROP
     iptables-save > /etc/iptables.up.rules
-    iptables-restore -t < /etc/iptables.up.rules
+    iptables-restore < /etc/iptables.up.rules
     netfilter-persistent save
     netfilter-persistent reload
 
@@ -1007,8 +1007,8 @@ function enable_services() {
 # TELEGRAM NOTIFICATION
 # ============================================================
 function restart_system() {
-    USRSC=$(wget -qO- https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep $ipsaya | awk '{print $2}')
-    EXPSC=$(wget -qO- https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep $ipsaya | awk '{print $3}')
+    USRSC=$(wget -qO- https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep -F "$ipsaya" | awk '{print $2}')
+    EXPSC=$(wget -qO- https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep -F "$ipsaya" | awk '{print $3}')
     TIMEZONE=$(printf '%(%H:%M:%S)T')
     RX=$(cat /dev/urandom | tr -dc 'A-Za-z0-9' | head -c 8)
     domain=$(cat /etc/xray/domain)
