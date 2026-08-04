@@ -1,10 +1,10 @@
 #!/bin/bash
 apt install jq curl -y
-domain=YOUR-DOMAIN.COM
+domain=valls.cloud
 sub=$(</dev/urandom tr -dc a-z0-9 | head -c5)
 IP=$(wget -qO- icanhazip.com)
-CF_KEY=YOUR-CLOUDFLARE-API-KEY
-CF_ID=YOUR-CLOUDFLARE-EMAIL
+CF_KEY=e54ac7edea27dbef7cc1fdb13025d47da45c2
+CF_ID=nvatryn@gmail.com
 dns=${sub}.${domain}
 wilcard=*.${dns}
 set -euo pipefail
