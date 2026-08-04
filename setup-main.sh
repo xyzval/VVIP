@@ -240,7 +240,7 @@ function first_setup() {
                 ;;
         esac
     elif [[ $os_id == "debian" ]]; then
-        curl -fsSL https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor -o /usr/share/keyrings/haproxy.debian.net.gpg
+        curl -fsSL https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor --yes -o /usr/share/keyrings/haproxy.debian.net.gpg
         case "$os_version" in
             11)
                 echo "deb [signed-by=/usr/share/keyrings/haproxy.debian.net.gpg] http://haproxy.debian.net bullseye-backports-3.0 main" > /etc/apt/sources.list.d/haproxy.list
