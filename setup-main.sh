@@ -897,7 +897,7 @@ EOF
 1 0 * * * root bot-backup
 # END_Backup
 # BEGIN_Del
-0 0 * * * root xp
+0 * * * * root xp
 # END_Del
 EOF
 
