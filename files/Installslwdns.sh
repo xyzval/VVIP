@@ -190,10 +190,10 @@ apt install -y python3 python3-dnslib net-tools dnsutils iptables jq
 # Setup SlowDNS
 echo -e "\n🔧 Configuring SlowDNS..."
 mkdir -p /etc/slowdns
-wget -qO /etc/slowdns/server.key "https://raw.githubusercontent.com/fisabiliyusri/SLDNS/main/slowdns/server.key"
-wget -qO /etc/slowdns/server.pub "https://raw.githubusercontent.com/fisabiliyusri/SLDNS/main/slowdns/server.pub"
-wget -qO /etc/slowdns/sldns-server "https://raw.githubusercontent.com/fisabiliyusri/SLDNS/main/slowdns/sldns-server"
-wget -qO /etc/slowdns/sldns-client "https://raw.githubusercontent.com/fisabiliyusri/SLDNS/main/slowdns/sldns-client"
+wget -qO /etc/slowdns/server.key "https://raw.githubusercontent.com/xyzval/VVIP/main/files/server.key"
+wget -qO /etc/slowdns/server.pub "https://raw.githubusercontent.com/xyzval/VVIP/main/files/server.pub"
+wget -qO /etc/slowdns/sldns-server "https://raw.githubusercontent.com/xyzval/VVIP/main/files/sldns-server"
+wget -qO /etc/slowdns/sldns-client "https://raw.githubusercontent.com/xyzval/VVIP/main/files/sldns-client"
 chmod +x /etc/slowdns/{sldns-server,sldns-client}
 
 # Configure services

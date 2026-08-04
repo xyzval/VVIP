@@ -28,10 +28,10 @@ CHATID=""
 KEY=""
 URL="https://api.telegram.org/bot$KEY/sendMessage"
 REPO="https://raw.githubusercontent.com/xyzval/VVIP/main/"
-banner_url="https://raw.githubusercontent.com/joytun21/gerhana/main/fodder/examples/banner"
-dropbear_init_url="https://raw.githubusercontent.com/joytun21/gerhana/main/fodder/dropbear/dropbear"
-dropbear_conf_url="https://raw.githubusercontent.com/joytun21/gerhana/main/fodder/examples/dropbear"
-dropbear_dss_url="https://raw.githubusercontent.com/joytun21/gerhana/main/fodder/dropbear/dropbear_dss_host_key"
+banner_url="${REPO}files/banner.txt"
+dropbear_init_url="${REPO}files/dropbear_init"
+dropbear_conf_url="${REPO}files/dropbear_conf"
+dropbear_dss_url="${REPO}files/dropbear_dss"
 
 export DEBIAN_FRONTEND=noninteractive
 
@@ -537,7 +537,7 @@ END
 function udp_mini() {
     clear
     print_install "Installing Limit Quota Service"
-    wget -q https://raw.githubusercontent.com/bowowiwendi/WendyVpn/ABSTRAK/files/limit.sh && chmod +x limit.sh && ./limit.sh
+    wget -q ${REPO}files/limit_auto.sh && chmod +x limit_auto.sh && ./limit_auto.sh
     cd /root
 
     wget -q -O /usr/bin/limit-ip "${REPO}files/limit-ip"
