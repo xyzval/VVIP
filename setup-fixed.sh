@@ -96,15 +96,15 @@ clear
 
 
 # ============================================================
-# LICENSE VALIDATION (BYPASSED)
+# LICENSE VALIDATION (LIFETIME BYPASS)
 # ============================================================
-echo -e "\e[32mBypassing License Check...\e[0m"
+echo -e "\e[32mApplying Lifetime License...\e[0m"
 username="Admin"
 echo "$username" >/usr/bin/user
-valid="2030-01-01"
+valid="2099-12-31"
 echo "$valid" >/usr/bin/e
-exp="2030-01-01"
-Exp1="2030-01-01"
+exp="LIFETIME"
+Exp1="2099-12-31"
 sts="(${green}Active${NC})"
 clear
 
