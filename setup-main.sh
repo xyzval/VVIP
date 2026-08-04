@@ -233,7 +233,7 @@ function first_setup() {
                 apt update -y
                 apt-get install -y haproxy=2.9.\* || apt-get install -y haproxy
                 ;;
-            22.04|24.04)
+            22.04|24.04|*)
                 add-apt-repository -y ppa:vbernat/haproxy-3.0
                 apt update -y
                 apt-get install -y haproxy=3.0.\* || apt-get install -y haproxy
@@ -245,7 +245,7 @@ function first_setup() {
             11)
                 echo "deb [signed-by=/usr/share/keyrings/haproxy.debian.net.gpg] http://haproxy.debian.net bullseye-backports-3.0 main" > /etc/apt/sources.list.d/haproxy.list
                 ;;
-            12)
+            12|13|*)
                 echo "deb [signed-by=/usr/share/keyrings/haproxy.debian.net.gpg] http://haproxy.debian.net bookworm-backports-3.0 main" > /etc/apt/sources.list.d/haproxy.list
                 ;;
         esac
