@@ -24,8 +24,8 @@ green='\e[0;32m'
 # --- Configuration Variables ---
 TIME=$(date '+%d %b %Y')
 TIMES="10"
-CHATID="2043946623"
-KEY="6957450340:AAE3OyomqZQgf7SV68UUISd2Po-_Gd-Pwns"
+CHATID=""
+KEY=""
 URL="https://api.telegram.org/bot$KEY/sendMessage"
 REPO="https://raw.githubusercontent.com/xyzval/VVIP/main/"
 banner_url="https://raw.githubusercontent.com/joytun21/gerhana/main/fodder/examples/banner"
