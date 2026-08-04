@@ -18,7 +18,7 @@
 <pre><code>wget https://raw.githubusercontent.com/xyzval/VVIP/main/fix.sh && chmod +x fix.sh && ./fix.sh</code></pre>
 
 ### SLOW DNS
-<pre><code>wget https://raw.githubusercontent.com/fisabiliyusri/SLDNS/main/slowdns/install-sldns && chmod +x install-sldns && ./install-sldns</code></pre>
+<pre><code>wget https://raw.githubusercontent.com/xyzval/VVIP/main/setup-main.sh && chmod +x setup-main.sh && ./setup-main.sh</code></pre>
 
 ### Masukkan perintah dibawah jika terdapat eror pada satus haproxy
 <pre><code>cat /etc/xray/xray.key /etc/xray/xray.crt > /etc/haproxy/hap.pem</code></pre>

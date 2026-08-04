@@ -1,10 +1,10 @@
 #!/bin/bash
 apt install jq curl -y
-domain=tryn.cloud
+domain=YOUR-DOMAIN.COM
 sub=$(</dev/urandom tr -dc a-z0-9 | head -c5)
 IP=$(wget -qO- icanhazip.com)
-CF_KEY=e54ac7edea27dbef7cc1fdb13025d47da45c2
-CF_ID=nvatryn@gmail.com
+CF_KEY=YOUR-CLOUDFLARE-API-KEY
+CF_ID=YOUR-CLOUDFLARE-EMAIL
 dns=${sub}.${domain}
 wilcard=*.${dns}
 set -euo pipefail
