@@ -1,64 +1,63 @@
+# VALLSTORE VPN TUNNELING - Auto Installer
+Supported OS: Ubuntu 20.04/22.04/24.04, Debian 11/12/13
+Architecture: x86_64 only
 
-# UP REPO DEBIAN
-<pre><code>apt update -y && apt upgrade -y && apt dist-upgrade -y && reboot</code></pre>
-# UP REPO UBUNTU
-<pre><code>apt update && apt upgrade -y && update-grub && sleep 2 && reboot</pre></code>
-
-### INSTALL SCRIPT 
-<pre><code>sysctl -w net.ipv6.conf.all.disable_ipv6=1 && sysctl -w net.ipv6.conf.default.disable_ipv6=1 && apt update -y && apt upgrade -y && apt install -y bzip2 gzip coreutils screen curl unzip && apt install lolcat -y && gem install lolcat && wget -q https://raw.githubusercontent.com/xyzval/VVIP/main/setup-main.sh && chmod +x setup-main.sh && sed -i -e 's/\r$//' setup-main.sh && screen -S setupku ./setup-main.sh</code></pre>
-
-### INSTALL SCRIPT SIMPLE
-<pre><code>wget -O install.sh https://bit.ly/vvipsc && chmod +x install.sh && bash install.sh
-</code></pre>
-
-### PERINTAH UPDATE 
-<pre><code>wget https://raw.githubusercontent.com/xyzval/VVIP/main/files/update.sh && chmod +x update.sh && ./update.sh</code></pre>
-
-### FIX DROPBEAR
-<pre><code>wget https://raw.githubusercontent.com/xyzval/VVIP/main/fix.sh && chmod +x fix.sh && ./fix.sh</code></pre>
-
-### SLOW DNS
-<pre><code>wget https://raw.githubusercontent.com/xyzval/VVIP/main/setup-main.sh && chmod +x setup-main.sh && ./setup-main.sh</code></pre>
-
-### Masukkan perintah dibawah jika terdapat eror pada satus haproxy
-<pre><code>cat /etc/xray/xray.key /etc/xray/xray.crt > /etc/haproxy/hap.pem</code></pre>
-
-### Setelah sertifikat dan kunci ssl berhasil dipindahkan, restart haproxynya
-<pre><code>catsudo systemctl restart haproxy</code></pre>
-
-Kembali ke menu utama dan cek apakah haproxy sudah berjalan dengan normal
-
-### TESTED ON OS 
-- UBUNTU 20
-- DEBIAN 10 ( Recomended )
-
-### PORT INFO
+## 🚀 Instalasi Cepat
+Jalankan perintah ini di VPS murni Anda:
+```bash
+wget -q https://raw.githubusercontent.com/xyzval/VVIP/main/setup-main.sh && chmod +x setup-main.sh && ./setup-main.sh
 ```
-- TROJAN WS  443 8443
-- TROJAN GRPC 443 8443
-- SHADOWSOCKS WS 443 8443
-- SHADOWSOCKS GRPC 443 8443
-- VLESS WSS 443 8443
-- VLESS GRPC 443 8443
-- VLESS NONTLS 80 8080 8880 2082
-- VMESS WS 443 8443
-- VMESS GRPC 443 8443
-- VMESS NONTLS 80 8080 8880 2082
-- SSH WS / TLS 443 8443
-- SSH NON TLS 8880 80 8080 2082 2095 2086
-- OVPN SSL/TCP 1194
-- SLOWDNS 5300
-```
-### Author
-```
-SUCCESSFUL ✓
-```
-VALL VPN TUNNEL:
 
-<a href="https://t.me/nvtryn" target=”_blank”><img src="https://img.shields.io/static/v1?style=for-the-badge&logo=Telegram&label=Telegram&message=Click%20Here&color=blue"></a><br>
+---
+
+## 🔌 Dokumentasi API Node (Untuk Integrasi Bot Lain)
+Sistem ini mendukung integrasi ke banyak Bot Telegram/WhatsApp atau Website menggunakan API Key. Semua pengaturan tombol dan harga dikendalikan langsung dari VPS VPN.
+
+### 🔑 Informasi Kunci
+- **Base URL:** `http://IP-VPS-ANDA:8000`
+- **API Key:** `VALL-PREMIUM-KEY-99` (Permanen)
+- **Header Wajib:** `x-api-key: VALL-PREMIUM-KEY-99`
+
+### 🛠️ Endpoints
+
+#### 1. Mengambil Daftar Produk (GET)
+Digunakan untuk menampilkan tombol dan harga secara dinamis di bot.
+- **URL:** `/products`
+- **Method:** `GET`
+- **Response:**
+```json
+{
+  "success": true,
+  "server_name": "VPN SERVER SG-1",
+  "payment_expiry": 15,
+  "data": [
+    { "id": "vmess", "name": "🛍️ VMESS (30 Hari)", "price": 4000, "duration": 30 },
+    { "id": "vless", "name": "🛍️ VLESS (30 Hari)", "price": 4000, "duration": 30 }
+  ]
+}
 ```
-WA: 
+
+#### 2. Membuat Akun VPN (POST)
+Digunakan setelah user melakukan pembayaran.
+- **URL:** `/create`
+- **Method:** `POST`
+- **Body (JSON):**
+```json
+{
+  "user": "nama_pembeli",
+  "proto": "vmess",
+  "duration": "30"
+}
 ```
-```
-TELE: 
-```
+- **Response:** Akan mengembalikan detail akun lengkap (Link TLS, Non-TLS, GRPC, dll).
+
+---
+
+## 🛠️ Cara Ubah Harga & Produk
+1. Masuk ke VPS VPN Anda.
+2. Edit file: `nano /root/vpn-api/index.js`
+3. Ubah bagian `const products`.
+4. Restart API: `pm2 restart vpn-node-api`
+
+---
+**Official Repository by xyzval**
