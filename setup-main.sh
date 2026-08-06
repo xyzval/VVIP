@@ -89,9 +89,23 @@ else
     echo -e "${OK} IP Address ( ${green}$IP${NC} )"
 fi
 
+echo -e "${YELLOW}----------------------------------------------------------${NC}"
+echo -e "         SETTING DOMAIN OTOMATIS (Wajib diisi)"
+echo -e "${YELLOW}----------------------------------------------------------${NC}"
+read -rp " Masukkan Domain/Subdomain Anda: " domain_input
+if [[ -z "$domain_input" ]]; then
+    echo -e "${RED}Domain tidak boleh kosong! Instalasi dibatalkan.${NC}"
+    exit 1
+fi
+mkdir -p /etc/xray
+echo "$domain_input" > /etc/xray/domain
+echo "$domain_input" > /etc/xray/scdomain
+echo "$domain_input" > /root/domain
+echo "$domain_input" > /root/scdomain
+echo -e "${OK} Domain berhasil diset ke: ${green}$domain_input${NC}"
 echo ""
-read -p "$(echo -e "Press ${GRAY}[ ${NC}${green}Enter${NC} ${GRAY}]${NC} For Starting Installation") "
-echo ""
+sleep 2
+
 clear
 
 
@@ -351,40 +365,14 @@ function nginx_install() {
 # DOMAIN SETUP
 # ============================================================
 function pasang_domain() {
-    echo ""
     clear
-    echo -e "===================================================="
-    echo -e "   |\e[1;32mPlease Select a Domain Type Below \e[0m|"
-    echo -e "===================================================="
-    echo -e "     \e[1;32m1)\e[0m Your Domain"
-    echo -e "     \e[1;32m2)\e[0m Random Domain "
-    echo -e "===================================================="
-    read -p "   Please select numbers 1-2 or Any Button(Random) : " host
-    echo ""
-    if [[ $host == "1" ]]; then
-        echo -e "\e[1;32m====================================================${NC}"
-        echo -e "\e[1;36m     INPUT SUBDOMAIN ${NC}"
-        echo -e "\e[1;32m====================================================${NC}"
-        echo -e "\033[91;1m contoh subdomain :\033[0m \033[93mwendi.ssh.cloud\033[0m"
-        read -p "SUBDOMAIN :  " host1
-        echo "IP=" >> /var/lib/kyt/ipvps.conf
-        echo $host1 > /etc/xray/domain
-        echo $host1 > /etc/xray/scdomain
-        echo $host1 > /etc/v2ray/domain
-        echo $host1 > /root/domain
-        echo $host1 > /root/scdomain
-        echo ""
-        print_install "Subdomain/Domain is Used"
-        clear
-    elif [[ $host == "2" ]]; then
-        wget ${REPO}files/cf.sh && chmod +x cf.sh && ./cf.sh
-        rm -f /root/cf.sh
-        clear
-    else
-        print_install "Random Subdomain/Domain is Used"
-        clear
+    domain=$(cat /etc/xray/domain 2>/dev/null)
+    if [[ -n "$domain" ]]; then
+        print_install "Using Pre-set Domain: $domain"
+        return
     fi
-}
+    # Fallback jika input di awal terlewat (tidak seharusnya terjadi)
+    echo -e "===================================================="
 
 
 # ============================================================
