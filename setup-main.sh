@@ -89,6 +89,12 @@ else
     echo -e "${OK} IP Address ( ${green}$IP${NC} )"
 fi
 
+echo ""
+read -p "$(echo -e "Press ${GRAY}[ ${NC}${green}Enter${NC} ${GRAY}]${NC} For Starting Installation") "
+echo ""
+clear
+
+
 # ============================================================
 # LICENSE VALIDATION (LIFETIME BYPASS)
 # ============================================================
@@ -177,7 +183,6 @@ function install_packages() {
 
     # Specific package handling for Ubuntu 24.04 / Debian 13
     if [[ "$os_version" == "24.04" ]] || [[ "$os_id" == "debian" && "$os_version" == "13" ]]; then
-        # Remove packages that don't exist in newer repos
         packages=(${packages[@]/shc/})
         packages=(${packages[@]/ntpdate/})
     fi
@@ -494,7 +499,6 @@ function ssh() {
     wget -O /etc/pam.d/common-password "${REPO}files/password" >/dev/null 2>&1
     chmod +x /etc/pam.d/common-password
 
-    # Try individually to prevent script failure if package missing
     apt-get install -y keyboard-configuration debconf-utils >/dev/null 2>&1
     
     echo "keyboard-configuration keyboard-configuration/altgr select The default for the keyboard layout" | debconf-set-selections
@@ -637,7 +641,7 @@ function ssh_slow() {
 # ============================================================
 function ins_SSHD() {
     clear
-    print_install "Installing SSHD"
+    print_install "Configuring SSHD"
     wget -q -O /etc/ssh/sshd_config "${REPO}files/sshd" >/dev/null 2>&1
     chmod 700 /etc/ssh/sshd_config
     /etc/init.d/ssh restart
@@ -920,7 +924,7 @@ EOF
 
     cat > /etc/cron.d/logclean <<-END
 SHELL=/bin/sh
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/bin
 */10 * * * * root /usr/local/sbin/clearlog
 END
 
@@ -929,7 +933,7 @@ END
 
     cat > /etc/cron.d/daily_reboot <<-END
 SHELL=/bin/sh
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/bin
 0 5 * * * root /sbin/reboot
 END
 
@@ -1013,7 +1017,7 @@ function restart_system() {
 <code>────────────────────</code>
 <code>TRX #$RX Transaksi Succes VPS</code>
 <i>Simpan Baik-baik informasi ini tidak akan di kirim Ulang</i>
-"'&reply_markup={"inline_keyboard":[[{"text":"Order","url":"https://t.me/wendivpn"},{"text":"Contact","url":"https://wa.me/6283153170199"}]]}'
+"
     
     if [[ -n "$CHATID" ]] && [[ -n "$KEY" ]]; then
         curl -s --max-time $TIMES -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
