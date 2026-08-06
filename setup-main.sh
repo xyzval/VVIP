@@ -173,13 +173,20 @@ function install_packages() {
         libxml-parser-perl build-essential gcc g++ htop lsof tar wget curl ruby
         zip unzip p7zip-full libc6 util-linux ca-certificates iptables
         iptables-persistent netfilter-persistent net-tools openssl gnupg gnupg2
-        lsb-release shc cmake git whois screen socat xz-utils apt-transport-https
-        gnupg1 dnsutils cron bash-completion ntpdate chrony jq tmux python3
+        lsb-release cmake git whois screen socat xz-utils apt-transport-https
+        dnsutils cron bash-completion chrony jq tmux python3
         python3-pip gawk libncursesw5-dev libgdbm-dev tk-dev libffi-dev
         libbz2-dev checkinstall openvpn easy-rsa dropbear figlet pwgen sudo
         debconf-utils software-properties-common vnstat rclone
         msmtp-mta bsd-mailx
     )
+
+    # Specific package handling for Ubuntu 24.04 / Debian 13
+    if [[ "$os_version" == "24.04" ]] || [[ "$os_id" == "debian" && "$os_version" == "13" ]]; then
+        # Remove packages that don't exist in newer repos
+        packages=(${packages[@]/shc/})
+        packages=(${packages[@]/ntpdate/})
+    fi
 
 
     # Check which packages are missing and install in batch
@@ -397,14 +404,19 @@ function pasang_ssl() {
         chmod +x /root/.acme.sh/acme.sh
     fi
 
-    domain=$(cat /etc/xray/domain)
+    domain=$(cat /etc/xray/domain 2>/dev/null)
+    if [[ -z "$domain" || "$domain" == "localhost" ]]; then
+        echo -e "${YELLOW}Domain not set. Skipping real SSL installation. Self-signed certificate will be used.${NC}"
+        return
+    fi
+    
     /root/.acme.sh/acme.sh --upgrade --auto-upgrade
     /root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
-    /root/.acme.sh/acme.sh --issue -d $domain --standalone -k ec-256
+    /root/.acme.sh/acme.sh --issue -d $domain --standalone -k ec-256 --force
     /root/.acme.sh/acme.sh --installcert -d $domain --fullchainpath /etc/xray/xray.crt --keypath /etc/xray/xray.key --ecc
 
     mkdir -p /etc/haproxy
-    cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem
+    cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem >/dev/null 2>&1
     chown www-data:www-data /etc/xray/xray.key
     chown www-data:www-data /etc/xray/xray.crt
     print_success "SSL Certificate"
@@ -425,8 +437,9 @@ function install_xray() {
     wget -O /etc/xray/config.json "${REPO}cfg_conf_js/config.json" >/dev/null 2>&1
     wget -O /etc/systemd/system/runn.service "${REPO}files/runn.service" >/dev/null 2>&1
 
-    domain=$(cat /etc/xray/domain)
-    IPVS=$(cat /etc/xray/ipvps)
+    domain=$(cat /etc/xray/domain 2>/dev/null)
+    if [[ -z "$domain" ]]; then domain="localhost"; fi
+    IPVS=$(cat /etc/xray/ipvps 2>/dev/null || curl -s ifconfig.me)
     print_success "Xray Core 1.8.3"
     clear
 
@@ -436,10 +449,19 @@ function install_xray() {
     print_install "Configuring Services"
     wget -O /etc/haproxy/haproxy.cfg "${REPO}cfg_conf_js/haproxy.cfg" >/dev/null 2>&1
     wget -O /etc/nginx/conf.d/xray.conf "${REPO}cfg_conf_js/xray.conf" >/dev/null 2>&1
+    
+    # Ensure domain is substituted or use localhost
     sed -i "s/xxx/${domain}/g" /etc/haproxy/haproxy.cfg
     sed -i "s/xxx/${domain}/g" /etc/nginx/conf.d/xray.conf
+    
+    # Pre-generate self-signed cert if not exists to allow services to start
+    if [ ! -f "/etc/xray/xray.crt" ]; then
+        openssl req -x509 -newkey rsa:2048 -keyout /etc/xray/xray.key -out /etc/xray/xray.crt -days 365 -nodes -subj "/CN=${domain}" >/dev/null 2>&1
+    fi
+    
     curl -s ${REPO}cfg_conf_js/nginx.conf > /etc/nginx/nginx.conf
-    cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem
+    cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem >/dev/null 2>&1
+
 
     chmod +x /etc/systemd/system/runn.service
     rm -rf /etc/systemd/system/xray.service.d
