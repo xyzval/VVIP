@@ -89,23 +89,9 @@ else
     echo -e "${OK} IP Address ( ${green}$IP${NC} )"
 fi
 
-echo -e "${YELLOW}----------------------------------------------------------${NC}"
-echo -e "         SETTING DOMAIN OTOMATIS (Wajib diisi)"
-echo -e "${YELLOW}----------------------------------------------------------${NC}"
-read -rp " Masukkan Domain/Subdomain Anda: " domain_input
-if [[ -z "$domain_input" ]]; then
-    echo -e "${RED}Domain tidak boleh kosong! Instalasi dibatalkan.${NC}"
-    exit 1
-fi
-mkdir -p /etc/xray
-echo "$domain_input" > /etc/xray/domain
-echo "$domain_input" > /etc/xray/scdomain
-echo "$domain_input" > /root/domain
-echo "$domain_input" > /root/scdomain
-echo -e "${OK} Domain berhasil diset ke: ${green}$domain_input${NC}"
 echo ""
-sleep 2
-
+read -p "$(echo -e "Press ${GRAY}[ ${NC}${green}Enter${NC} ${GRAY}]${NC} For Starting Installation") "
+echo ""
 clear
 
 
@@ -365,13 +351,8 @@ function nginx_install() {
 # DOMAIN SETUP
 # ============================================================
 function pasang_domain() {
+    echo ""
     clear
-    domain=$(cat /etc/xray/domain 2>/dev/null)
-    if [[ -n "$domain" ]]; then
-        print_install "Using Pre-set Domain: $domain"
-        return
-    fi
-    # Fallback jika input di awal terlewat (tidak seharusnya terjadi)
     echo -e "===================================================="
     echo -e "   |\e[1;32mPlease Select a Domain Type Below \e[0m|"
     echo -e "===================================================="
