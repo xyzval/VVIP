@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================
 # VALLSTORE VPN TUNNELING - Auto Installer
-# Supported OS: Ubuntu 20.04/22.04/24.04, Debian 11/12
+# Supported OS: Ubuntu 20.04/22.04/24.04, Debian 11/12/13
 # Architecture: x86_64 only
 # Virtualization: KVM, Xen, VMware (NOT OpenVZ)
 # ============================================================
@@ -88,12 +88,6 @@ if [[ -z "$ipsaya" ]]; then
 else
     echo -e "${OK} IP Address ( ${green}$IP${NC} )"
 fi
-
-echo ""
-read -p "$(echo -e "Press ${GRAY}[ ${NC}${green}Enter${NC} ${GRAY}]${NC} For Starting Installation") "
-echo ""
-clear
-
 
 # ============================================================
 # LICENSE VALIDATION (LIFETIME BYPASS)
@@ -462,7 +456,6 @@ function install_xray() {
     curl -s ${REPO}cfg_conf_js/nginx.conf > /etc/nginx/nginx.conf
     cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem >/dev/null 2>&1
 
-
     chmod +x /etc/systemd/system/runn.service
     rm -rf /etc/systemd/system/xray.service.d
     rm -rf /etc/systemd/system/xray@.service.d
@@ -501,25 +494,28 @@ function ssh() {
     wget -O /etc/pam.d/common-password "${REPO}files/password" >/dev/null 2>&1
     chmod +x /etc/pam.d/common-password
 
-    DEBIAN_FRONTEND=noninteractive dpkg-reconfigure keyboard-configuration
-    debconf-set-selections <<< "keyboard-configuration keyboard-configuration/altgr select The default for the keyboard layout"
-    debconf-set-selections <<< "keyboard-configuration keyboard-configuration/compose select No compose key"
-    debconf-set-selections <<< "keyboard-configuration keyboard-configuration/ctrl_alt_bksp boolean false"
-    debconf-set-selections <<< "keyboard-configuration keyboard-configuration/layoutcode string de"
-    debconf-set-selections <<< "keyboard-configuration keyboard-configuration/layout select English"
-    debconf-set-selections <<< "keyboard-configuration keyboard-configuration/modelcode string pc105"
-    debconf-set-selections <<< "keyboard-configuration keyboard-configuration/model select Generic 105-key (Intl) PC"
-    debconf-set-selections <<< "keyboard-configuration keyboard-configuration/optionscode string "
-    debconf-set-selections <<< "keyboard-configuration keyboard-configuration/store_defaults_in_debconf_db boolean true"
-    debconf-set-selections <<< "keyboard-configuration keyboard-configuration/switch select No temporary switch"
-    debconf-set-selections <<< "keyboard-configuration keyboard-configuration/toggle select No toggling"
-    debconf-set-selections <<< "keyboard-configuration keyboard-configuration/unsupported_config_layout boolean true"
-    debconf-set-selections <<< "keyboard-configuration keyboard-configuration/unsupported_config_options boolean true"
-    debconf-set-selections <<< "keyboard-configuration keyboard-configuration/unsupported_layout boolean true"
-    debconf-set-selections <<< "keyboard-configuration keyboard-configuration/unsupported_options boolean true"
-    debconf-set-selections <<< "keyboard-configuration keyboard-configuration/variantcode string "
-    debconf-set-selections <<< "keyboard-configuration keyboard-configuration/variant select English"
-    debconf-set-selections <<< "keyboard-configuration keyboard-configuration/xkb-keymap select "
+    # Try individually to prevent script failure if package missing
+    apt-get install -y keyboard-configuration debconf-utils >/dev/null 2>&1
+    
+    echo "keyboard-configuration keyboard-configuration/altgr select The default for the keyboard layout" | debconf-set-selections
+    echo "keyboard-configuration keyboard-configuration/compose select No compose key" | debconf-set-selections
+    echo "keyboard-configuration keyboard-configuration/ctrl_alt_bksp boolean false" | debconf-set-selections
+    echo "keyboard-configuration keyboard-configuration/layoutcode string de" | debconf-set-selections
+    echo "keyboard-configuration keyboard-configuration/layout select English" | debconf-set-selections
+    echo "keyboard-configuration keyboard-configuration/modelcode string pc105" | debconf-set-selections
+    echo "keyboard-configuration keyboard-configuration/model select Generic 105-key (Intl) PC" | debconf-set-selections
+    echo "keyboard-configuration keyboard-configuration/optionscode string " | debconf-set-selections
+    echo "keyboard-configuration keyboard-configuration/store_defaults_in_debconf_db boolean true" | debconf-set-selections
+    echo "keyboard-configuration keyboard-configuration/switch select No temporary switch" | debconf-set-selections
+    echo "keyboard-configuration keyboard-configuration/toggle select No toggling" | debconf-set-selections
+    echo "keyboard-configuration keyboard-configuration/unsupported_config_layout boolean true" | debconf-set-selections
+    echo "keyboard-configuration keyboard-configuration/unsupported_config_options boolean true" | debconf-set-selections
+    echo "keyboard-configuration keyboard-configuration/unsupported_layout boolean true" | debconf-set-selections
+    echo "keyboard-configuration keyboard-configuration/unsupported_options boolean true" | debconf-set-selections
+    echo "keyboard-configuration keyboard-configuration/variantcode string " | debconf-set-selections
+    echo "keyboard-configuration keyboard-configuration/variant select English" | debconf-set-selections
+    
+    DEBIAN_FRONTEND=noninteractive dpkg-reconfigure keyboard-configuration -f noninteractive >/dev/null 2>&1
 
 
     cd /root
@@ -539,11 +535,12 @@ WantedBy=multi-user.target
 END
 
     cat > /etc/rc.local <<-END
+#!/bin/bash
 exit 0
 END
     chmod +x /etc/rc.local
     systemctl enable rc-local
-    systemctl start rc-local.service
+    systemctl start rc-local.service 2>/dev/null
 
     echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6
     sed -i '$ i\echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6' /etc/rc.local
@@ -606,9 +603,9 @@ EOF
 
 
     systemctl daemon-reload
-    systemctl enable --now vmip
-    systemctl enable --now vlip
-    systemctl enable --now trip
+    systemctl enable --now vmip 2>/dev/null
+    systemctl enable --now vlip 2>/dev/null
+    systemctl enable --now trip 2>/dev/null
 
     # UDP Mini
     mkdir -p /usr/local/kyt/
@@ -619,9 +616,9 @@ EOF
     wget -q -O /etc/systemd/system/udp-mini-3.service "${REPO}files/udp-mini-3.service"
 
     systemctl daemon-reload
-    systemctl enable --now udp-mini-1
-    systemctl enable --now udp-mini-2
-    systemctl enable --now udp-mini-3
+    systemctl enable --now udp-mini-1 2>/dev/null
+    systemctl enable --now udp-mini-2 2>/dev/null
+    systemctl enable --now udp-mini-3 2>/dev/null
     print_success "Limit Quota Service"
 }
 
@@ -640,7 +637,7 @@ function ssh_slow() {
 # ============================================================
 function ins_SSHD() {
     clear
-    print_install "Configuring SSHD"
+    print_install "Installing SSHD"
     wget -q -O /etc/ssh/sshd_config "${REPO}files/sshd" >/dev/null 2>&1
     chmod 700 /etc/ssh/sshd_config
     /etc/init.d/ssh restart
@@ -676,20 +673,20 @@ function ins_vnstat() {
     clear
     print_install "Installing Vnstat"
     apt -y install vnstat >/dev/null 2>&1
-    /etc/init.d/vnstat restart
+    /etc/init.d/vnstat restart 2>/dev/null
     apt -y install libsqlite3-dev >/dev/null 2>&1
     wget -q https://humdi.net/vnstat/vnstat-2.6.tar.gz
-    tar zxvf vnstat-2.6.tar.gz
+    tar zxvf vnstat-2.6.tar.gz >/dev/null 2>&1
     cd vnstat-2.6
-    ./configure --prefix=/usr --sysconfdir=/etc && make && make install
+    ./configure --prefix=/usr --sysconfdir=/etc >/dev/null 2>&1 && make >/dev/null 2>&1 && make install >/dev/null 2>&1
     cd /root
 
     NET=$(ip route show default | awk '/default/ {print $5}' | head -1)
-    vnstat -u -i $NET 2>/dev/null
+    vnstat -i $NET 2>/dev/null
     sed -i "s/Interface \"eth0\"/Interface \"$NET\"/g" /etc/vnstat.conf 2>/dev/null
     chown vnstat:vnstat /var/lib/vnstat -R 2>/dev/null
     systemctl enable vnstat
-    /etc/init.d/vnstat restart
+    /etc/init.d/vnstat restart 2>/dev/null
     rm -f /root/vnstat-2.6.tar.gz
     rm -rf /root/vnstat-2.6
     print_success "Vnstat"
@@ -702,7 +699,7 @@ function ins_openvpn() {
     clear
     print_install "Installing OpenVPN"
     wget -q ${REPO}files/openvpn && chmod +x openvpn && ./openvpn
-    /etc/init.d/openvpn restart
+    /etc/init.d/openvpn restart 2>/dev/null
     print_success "OpenVPN"
 }
 
@@ -725,8 +722,8 @@ function ins_swab() {
 
     # Swap
     if [ ! -f /swapfile ]; then
-        dd if=/dev/zero of=/swapfile bs=1024 count=1048576
-        mkswap /swapfile
+        dd if=/dev/zero of=/swapfile bs=1024 count=1048576 >/dev/null 2>&1
+        mkswap /swapfile >/dev/null 2>&1
         chown root:root /swapfile
         chmod 0600 /swapfile
         swapon /swapfile
@@ -734,10 +731,8 @@ function ins_swab() {
     fi
 
     # Time sync
-    systemctl enable chrony
-    systemctl restart chrony
-    chronyc sourcestats -v 2>/dev/null
-    chronyc tracking -v 2>/dev/null
+    systemctl enable chrony >/dev/null 2>&1
+    systemctl restart chrony >/dev/null 2>&1
 
     # BBR
     wget -q ${REPO}files/bbr.sh && chmod +x bbr.sh && ./bbr.sh
@@ -773,7 +768,7 @@ function ins_epro() {
     chmod +x /usr/bin/ws
     chmod 644 /usr/bin/tun.conf
     systemctl daemon-reload
-    systemctl enable --now ws
+    systemctl enable --now ws 2>/dev/null
 
     # GeoIP data
     mkdir -p /usr/local/share/xray
@@ -796,9 +791,9 @@ function ins_epro() {
     iptables -A FORWARD -m string --algo bm --string "announce" -j DROP
     iptables -A FORWARD -m string --algo bm --string "info_hash" -j DROP
     iptables-save > /etc/iptables.up.rules
-    iptables-restore < /etc/iptables.up.rules
-    netfilter-persistent save
-    netfilter-persistent reload
+    iptables-restore < /etc/iptables.up.rules 2>/dev/null
+    netfilter-persistent save 2>/dev/null
+    netfilter-persistent reload 2>/dev/null
 
     apt autoclean -y >/dev/null 2>&1
     apt autoremove -y >/dev/null 2>&1
@@ -812,8 +807,8 @@ function ins_epro() {
 function ins_backup() {
     clear
     print_install "Setting Up Backup Server"
-    apt install rclone -y
-    printf "q\n" | rclone config
+    apt install rclone -y >/dev/null 2>&1
+    printf "q\n" | rclone config >/dev/null 2>&1
     mkdir -p /root/.config/rclone
     wget -O /root/.config/rclone/rclone.conf "${REPO}cfg_conf_js/rclone.conf" >/dev/null 2>&1
 
@@ -821,14 +816,14 @@ function ins_backup() {
     git clone https://github.com/magnific0/wondershaper.git 2>/dev/null
     if [ -d wondershaper ]; then
         cd wondershaper
-        sudo make install
+        sudo make install >/dev/null 2>&1
         cd ..
         rm -rf wondershaper
     fi
     cd /root
 
     echo > /home/files
-    apt install msmtp-mta ca-certificates bsd-mailx -y
+    apt install msmtp-mta ca-certificates bsd-mailx -y >/dev/null 2>&1
     cat > /etc/msmtprc << EOF
 defaults
 tls on
@@ -845,7 +840,7 @@ logfile ~/.msmtp.log
 EOF
     chown -R www-data:www-data /etc/msmtprc
     chmod 600 /etc/msmtprc
-    wget -q -O /etc/ipserver "${REPO}files/ipserver" && bash /etc/ipserver
+    wget -q -O /etc/ipserver "${REPO}files/ipserver" && bash /etc/ipserver >/dev/null 2>&1
     print_success "Backup Server"
 }
 
@@ -856,25 +851,25 @@ EOF
 function ins_restart() {
     clear
     print_install "Restarting All Services"
-    /etc/init.d/nginx restart
-    /etc/init.d/openvpn restart
-    /etc/init.d/ssh restart
-    /etc/init.d/dropbear restart
+    /etc/init.d/nginx restart 2>/dev/null
+    /etc/init.d/openvpn restart 2>/dev/null
+    /etc/init.d/ssh restart 2>/dev/null
+    /etc/init.d/dropbear restart 2>/dev/null
     /etc/init.d/fail2ban restart 2>/dev/null
-    /etc/init.d/vnstat restart
-    systemctl restart haproxy
-    /etc/init.d/cron restart
+    /etc/init.d/vnstat restart 2>/dev/null
+    systemctl restart haproxy 2>/dev/null
+    /etc/init.d/cron restart 2>/dev/null
     systemctl daemon-reload
-    systemctl start netfilter-persistent
-    systemctl enable --now nginx
-    systemctl enable --now xray
-    systemctl enable --now rc-local
-    systemctl enable --now dropbear
-    systemctl enable --now openvpn
-    systemctl enable --now cron
-    systemctl enable --now haproxy
-    systemctl enable --now netfilter-persistent
-    systemctl enable --now ws
+    systemctl start netfilter-persistent 2>/dev/null
+    systemctl enable --now nginx 2>/dev/null
+    systemctl enable --now xray 2>/dev/null
+    systemctl enable --now rc-local 2>/dev/null
+    systemctl enable --now dropbear 2>/dev/null
+    systemctl enable --now openvpn 2>/dev/null
+    systemctl enable --now cron 2>/dev/null
+    systemctl enable --now haproxy 2>/dev/null
+    systemctl enable --now netfilter-persistent 2>/dev/null
+    systemctl enable --now ws 2>/dev/null
     systemctl enable --now fail2ban 2>/dev/null
     history -c
     echo "unset HISTFILE" >> /etc/profile
@@ -963,6 +958,7 @@ EOF
     echo "/usr/sbin/nologin" >> /etc/shells
 
     cat > /etc/rc.local <<EOF
+#!/bin/bash
 iptables -I INPUT -p udp --dport 5300 -j ACCEPT
 iptables -t nat -I PREROUTING -p udp --dport 53 -j REDIRECT --to-ports 5300
 systemctl restart netfilter-persistent
@@ -980,14 +976,14 @@ function enable_services() {
     clear
     print_install "Enabling Services"
     systemctl daemon-reload
-    systemctl start netfilter-persistent
-    systemctl enable --now rc-local
-    systemctl enable --now cron
-    systemctl enable --now netfilter-persistent
-    systemctl restart nginx
-    systemctl restart xray
-    systemctl restart cron
-    systemctl restart haproxy
+    systemctl start netfilter-persistent 2>/dev/null
+    systemctl enable --now rc-local 2>/dev/null
+    systemctl enable --now cron 2>/dev/null
+    systemctl enable --now netfilter-persistent 2>/dev/null
+    systemctl restart nginx 2>/dev/null
+    systemctl restart xray 2>/dev/null
+    systemctl restart cron 2>/dev/null
+    systemctl restart haproxy 2>/dev/null
     print_success "All Services Enabled"
 }
 
@@ -995,11 +991,11 @@ function enable_services() {
 # TELEGRAM NOTIFICATION
 # ============================================================
 function restart_system() {
-    USRSC=$(wget -qO- https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep -F "$ipsaya" | awk '{print $2}')
-    EXPSC=$(wget -qO- https://raw.githubusercontent.com/xyzval/VVIP/refs/heads/main/REGIST | grep -F "$ipsaya" | awk '{print $3}')
+    USRSC="Admin"
+    EXPSC="LIFETIME"
     TIMEZONE=$(printf '%(%H:%M:%S)T')
     RX=$(cat /dev/urandom | tr -dc 'A-Za-z0-9' | head -c 8)
-    domain=$(cat /etc/xray/domain)
+    domain=$(cat /etc/xray/domain 2>/dev/null || echo "localhost")
 
 
     TEXT="
@@ -1018,7 +1014,10 @@ function restart_system() {
 <code>TRX #$RX Transaksi Succes VPS</code>
 <i>Simpan Baik-baik informasi ini tidak akan di kirim Ulang</i>
 "'&reply_markup={"inline_keyboard":[[{"text":"Order","url":"https://t.me/wendivpn"},{"text":"Contact","url":"https://wa.me/6283153170199"}]]}'
-    curl -s --max-time $TIMES -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
+    
+    if [[ -n "$CHATID" ]] && [[ -n "$KEY" ]]; then
+        curl -s --max-time $TIMES -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
+    fi
 }
 
 
@@ -1076,7 +1075,7 @@ echo -e "\033[96m====================================================\033[0m"
 echo -e "\033[92m                  INSTALL SUCCESS\033[0m"
 echo -e "\033[96m====================================================\033[0m"
 echo -e ""
-echo -e " Supported OS  : Ubuntu 20.04/22.04/24.04, Debian 11/12"
+echo -e " Supported OS  : Ubuntu 20.04/22.04/24.04, Debian 11/12/13"
 echo -e " Architecture  : x86_64"
 echo -e " Script by     : VALLSTORE VPN TUNNELING"
 echo -e ""
