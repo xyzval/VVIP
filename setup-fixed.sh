@@ -1030,6 +1030,11 @@ function restart_system() {
 # ============================================================
 function instal() {
     clear
+    # Create directories first to prevent "No such file" errors during domain setup
+    mkdir -p /etc/xray
+    mkdir -p /etc/v2ray
+    mkdir -p /root
+    
     install_packages
     pasang_domain
     first_setup

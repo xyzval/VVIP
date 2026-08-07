@@ -58,6 +58,8 @@ RESULT=$(curl -sLX PUT "https://api.cloudflare.com/client/v4/zones/${ZONE}/dns_r
      -H "Content-Type: application/json" \
      --data '{"type":"A","name":"'${wilcard}'","content":"'${IP}'","ttl":120,"proxied":false}')
      
+mkdir -p /etc/xray
+mkdir -p /etc/v2ray
 echo $dns > /etc/xray/scdomain
 echo $dns > /etc/v2ray/domain
 echo $dns > /root/domain
