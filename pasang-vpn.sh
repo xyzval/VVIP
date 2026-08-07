@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==========================================
-# VPN BRIDGE INSTALLER FOR TELEBOT
+# VPN BRIDGE INSTALLER FOR TELEBOT (SMART VERSION)
 # ==========================================
 
 clear
@@ -9,17 +9,40 @@ echo -e "\e[1;97;101m          VPN BRIDGE INSTALLER            \e[0m"
 echo -e "\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
 echo -e ""
 
+# --- AUTO DETECT BOT DIRECTORY ---
+echo "⏳ Mencari folder bot Anda..."
+BOT_DIR=""
+
+# Cek di direktori saat ini
+if [ -f "bot.js" ]; then
+    BOT_DIR=$(pwd)
+else
+    # Cari di folder satu tingkat di bawah atau di folder telebot yang umum
+    SEARCH_DIR=$(find /root -name "bot.js" -maxdepth 3 2>/dev/null | head -n 1)
+    if [ -n "$SEARCH_DIR" ]; then
+        BOT_DIR=$(dirname "$SEARCH_DIR")
+    fi
+fi
+
+if [ -z "$BOT_DIR" ]; then
+    echo -e "\033[1;31m❌ ERROR: File bot.js tidak ditemukan!\033[0m"
+    read -p "Masukkan path folder bot Anda manual (Contoh: /root/telebot): " BOT_DIR_MANUAL
+    if [ -d "$BOT_DIR_MANUAL" ] && [ -f "$BOT_DIR_MANUAL/bot.js" ]; then
+        BOT_DIR=$BOT_DIR_MANUAL
+    else
+        echo "❌ Folder tetap tidak ditemukan. Batalkan."
+        exit 1
+    fi
+fi
+
+cd "$BOT_DIR"
+echo -e "\033[1;32m✅ Folder ditemukan: $BOT_DIR\033[0m"
+echo -e ""
+
 # 1. Input Data
 read -p "Masukkan IP VPS VPN Anda: " IP_VPN
 read -p "Masukkan API KEY (Default: VALL-PREMIUM-KEY-99): " API_KEY
 API_KEY=${API_KEY:-VALL-PREMIUM-KEY-99}
-
-# 2. Cek File bot.js
-if [ ! -f "bot.js" ]; then
-    echo -e "\033[1;31m❌ ERROR: File bot.js tidak ditemukan di folder ini!\033[0m"
-    echo "Silakan jalankan script ini di dalam folder telebot Anda."
-    exit 1
-fi
 
 # 3. Backup bot.js
 cp bot.js bot.js.bak
@@ -30,7 +53,6 @@ echo "⏳ Memasang library axios..."
 npm install axios --save >/dev/null 2>&1
 
 # 5. Jalankan Script Injeksi Kode (Node.js)
-# Script ini akan menyisipkan fitur VPN secara otomatis dan aman
 cat > inject_vpn.js <<EOF
 const fs = require('fs');
 let code = fs.readFileSync('bot.js', 'utf8');
@@ -142,7 +164,7 @@ const vpnActions = \`
                 const qrMsg = await ctx.replyWithPhoto(pay.qris, { caption, parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: "❌ Batalkan Pesanan", callback_data: "cancel_order" }]] } });
                 orders[fromId].qrMessageId = qrMsg.message_id;
             } else {
-                await ctx.reply("🏦 *PEMBAYARAN MANUAL*\\\\n\\\\nSilakan transfer ke:\\\\nDANA: 083153170199\\\\n\\\\nKirim bukti transfer ke Admin @WendiVpn", { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: "❌ Batalkan Pesanan", callback_data: "cancel_order" }]] } });
+                await ctx.reply("🏦 *PEMBAYARAN MANUAL*\\\\n\\\\nSilakan transfer ke:\\nDANA: 083153170199\\\\n\\\\nKirim bukti transfer ke Admin @WendiVpn", { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: "❌ Batalkan Pesanan", callback_data: "cancel_order" }]] } });
             }
             startCheck(fromId, ctx);
         } catch (e) { ctx.reply("❌ Gagal membuat tagihan."); }
@@ -195,6 +217,7 @@ node inject_vpn.js
 rm inject_vpn.js
 echo -e "\033[1;32m✅ INTEGRASI BERHASIL! Menghidupkan ulang bot...\033[0m"
 pm2 restart all
+rm pasang-vpn.sh
 echo -e "\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
 echo -e "         PROSES SELESAI, CEK BOT ANDA!       "
 echo -e "\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
