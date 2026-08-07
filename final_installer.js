@@ -1,8 +1,16 @@
 const fs = require('fs');
-const path = require('path');
 
 const botPath = 'bot.js';
 const bakPath = 'bot.js.bak';
+
+// Use env or default
+const IP_VPN = process.env.IP_VPN;
+const API_KEY = process.env.API_KEY || 'VALL-PREMIUM-KEY-99';
+
+if (!IP_VPN) {
+    console.error('ERROR: IP_VPN environment variable is required.');
+    process.exit(1);
+}
 
 if (!fs.existsSync(bakPath)) {
     fs.copyFileSync(botPath, bakPath);
@@ -10,20 +18,17 @@ if (!fs.existsSync(bakPath)) {
 
 let code = fs.readFileSync(bakPath, 'utf8');
 
-const IP_VPN = process.env.IP_VPN || '104.207.93.176';
-const API_KEY = process.env.API_KEY || 'VALL-PREMIUM-KEY-99';
-
 // 1. Add state and axios
 if (!code.includes('const waitingVPN = {};')) {
     code = code.replace('const orders = {};', 'const orders = {};\nconst waitingVPN = {};');
 }
 
-// 2. Redefine mainKeyboard correctly
+// 2. Rebuild mainKeyboard function
 const vpnButtonLogic = `
     try {
         const resCheck = await axios.get("http://${IP_VPN}:8000/products", {
             headers: { "x-api-key": "${API_KEY}" },
-            timeout: 2500
+            timeout: 3000
         });
         if (resCheck.data && resCheck.data.success) {
             keyboard.push([{ text: "🛡️ Beli Akun VPN", callback_data: "buy_vpn" }]);
@@ -31,7 +36,7 @@ const vpnButtonLogic = `
     } catch (e) {}
 `;
 
-const mainKeyboardTemplate = `const mainKeyboard = async (ctx) => {
+const mainKeyboardFunc = `const mainKeyboard = async (ctx) => {
     const keyboard = [
         [
             { text: "📱 Beli Apps Premium",  callback_data: "buy_apps"  },
@@ -51,11 +56,11 @@ ${vpnButtonLogic}
     return { inline_keyboard: keyboard };
 };`;
 
-code = code.replace(/const mainKeyboard = \(ctx\) => \{[\s\S]*?return \{ inline_keyboard: keyboard \};\s+\};/s, mainKeyboardTemplate);
+code = code.replace(/const mainKeyboard = \(ctx\) => \{[\s\S]*?return \{ inline_keyboard: keyboard \};\s+\};/s, mainKeyboardFunc);
 code = code.replace(/reply_markup: mainKeyboard\(ctx\)/g, 'reply_markup: await mainKeyboard(ctx)');
 
-// 3. Add all actions
-const allActions = `
+// 3. Add all actions and text handlers in one safe block
+const vpnLogicBlock = `
     // --- VPN INTEGRATION START ---
     bot.action("buy_vpn", async (ctx) => {
         try { await ctx.answerCbQuery().catch(() => {}); } catch (e) {}
@@ -137,7 +142,7 @@ const allActions = `
 `;
 
 if (!code.includes('bot.action("buy_vpn"')) {
-    code = code.replace('// ===== CALLBACK QUERIES =====', '// ===== CALLBACK QUERIES =====\n' + allActions);
+    code = code.replace('// ===== CALLBACK QUERIES =====', '// ===== CALLBACK QUERIES =====\n' + vpnLogicBlock);
 }
 
 // 4. Input Handler
@@ -178,4 +183,4 @@ if (!code.includes('o.type === "vpn_premium"')) {
 }
 
 fs.writeFileSync(botPath, code);
-console.log('Bot structure rebuilt safely.');
+console.log('DONE');
