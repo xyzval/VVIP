@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==========================================
-# VPN BRIDGE INSTALLER FOR TELEBOT (ULTRA ROBUST)
+# VPN BRIDGE INSTALLER FOR TELEBOT (FIXED)
 # ==========================================
 
 clear
@@ -38,8 +38,13 @@ echo -e "\033[1;32m✅ Folder ditemukan: $BOT_DIR\033[0m"
 echo -e ""
 
 # 1. Input Data
-read -p "Masukkan IP VPS VPN Anda: " IP_VPN
-read -p "Masukkan API KEY (Default: VALL-PREMIUM-KEY-99): " API_KEY
+# Check if already set via env (for automated testing)
+if [ -z "$IP_VPN" ]; then
+    read -p "Masukkan IP VPS VPN Anda: " IP_VPN
+fi
+if [ -z "$API_KEY" ]; then
+    read -p "Masukkan API KEY (Default: VALL-PREMIUM-KEY-99): " API_KEY
+fi
 API_KEY=${API_KEY:-VALL-PREMIUM-KEY-99}
 
 # 3. Backup bot.js
@@ -51,52 +56,52 @@ echo "⏳ Memasang library axios..."
 npm install axios --save >/dev/null 2>&1
 
 # 5. Jalankan Script Injeksi Kode (Node.js)
-# Kita gunakan metode string manipulation yang lebih simpel agar tidak gagal
-cat > inject_vpn.js <<'EOF_JS'
+# We use string replacement with actual values to avoid template literal issues during injection
+cat > inject_vpn.js <<EOF
 const fs = require('fs');
 const botPath = 'bot.js';
 let code = fs.readFileSync(botPath, 'utf8');
 
-const IP_VPN = process.env.IP_VPN;
-const API_KEY = process.env.API_KEY;
+const IP_VPN = "$IP_VPN";
+const API_KEY = "$API_KEY";
 
-// 1. Add dependencies and state
+// 1. Add state and axios
 if (!code.includes('const waitingVPN = {};')) {
-    code = code.replace('const orders = {};', 'const orders = {};\nconst waitingVPN = {};');
+    code = code.replace('const orders = {};', 'const orders = {};\\nconst waitingVPN = {};');
 }
 
 // 2. Make mainKeyboard ASYNC
 code = code.replace('const mainKeyboard = (ctx) => {', 'const mainKeyboard = async (ctx) => {');
 
-// 3. Inject Auto-Detect VPN logic inside mainKeyboard
-const vpnLogic = `
+// 3. Inject Auto-Detect VPN logic
+const vpnLogic = \`
     try {
-        const res = await axios.get("http://${IP_VPN}:8000/products", {
-            headers: { "x-api-key": "${API_KEY}" },
+        const res = await axios.get("http://\${IP_VPN}:8000/products", {
+            headers: { "x-api-key": "\${API_KEY}" },
             timeout: 2500
         });
         if (res.data && res.data.success) {
             keyboard.push([{ text: "🛡️ Beli Akun VPN", callback_data: "buy_vpn" }]);
         }
     } catch (e) {}
-`;
+\`;
 
 if (!code.includes('buy_vpn')) {
-    code = code.replace('return { inline_keyboard: keyboard };', vpnLogic + '\n    return { inline_keyboard: keyboard };');
+    code = code.replace('return { inline_keyboard: keyboard };', vpnLogic + '\\n    return { inline_keyboard: keyboard };');
 }
 
 // 4. Ensure calls to mainKeyboard are awaited
-code = code.replace(/reply_markup: mainKeyboard\(ctx\)/g, 'reply_markup: await mainKeyboard(ctx)');
+code = code.replace(/reply_markup: mainKeyboard\\(ctx\\)/g, 'reply_markup: await mainKeyboard(ctx)');
 
 // 5. Add all Callback Actions
-const vpnActions = `
+const vpnActions = \`
     // --- VPN INTEGRATION START ---
     bot.action("buy_vpn", async (ctx) => {
         try { await ctx.answerCbQuery().catch(() => {}); } catch (e) {}
         ctx.reply("⏳ *Mengambil daftar produk dari server...*", { parse_mode: "Markdown" });
         try {
-            const res = await axios.get("http://${IP_VPN}:8000/products", {
-                headers: { "x-api-key": "${API_KEY}" }, timeout: 10000
+            const res = await axios.get("http://\${IP_VPN}:8000/products", {
+                headers: { "x-api-key": "\${API_KEY}" }, timeout: 10000
             });
             if (res.data && res.data.success) {
                 const products = res.data.data;
@@ -114,12 +119,12 @@ const vpnActions = `
                 });
                 if (trialRow.length > 0) keyboard.push([...trialRow]);
                 keyboard.push([{ text: "🔄 Back To Menu", callback_data: "back_menu" }]);
-                return ctx.reply("🛡️ *SERVER: " + res.data.server_name + "*\\nSilakan pilih paket VPN Anda:", { parse_mode: "Markdown", reply_markup: { inline_keyboard: keyboard } });
+                return ctx.reply("🛡️ *SERVER: " + res.data.server_name + "*\\\\nSilakan pilih paket VPN Anda:", { parse_mode: "Markdown", reply_markup: { inline_keyboard: keyboard } });
             }
         } catch (err) { return ctx.reply("❌ Server VPN OFFLINE."); }
     });
 
-    bot.action(/vpn_order\\|(.+)/, async (ctx) => {
+    bot.action(/vpn_order\\\\|(.+)/, async (ctx) => {
         try { await ctx.answerCbQuery().catch(() => {}); } catch (e) {}
         const parts = ctx.match[1].split("|");
         const proto = parts[0];
@@ -131,9 +136,9 @@ const vpnActions = `
         if (price === 0) {
             ctx.reply("⏳ *Sedang menyiapkan akun TRIAL 15 Menit...*", { parse_mode: "Markdown" });
             try {
-                const res = await axios.post("http://${IP_VPN}:8000/create", { proto, duration: "1" }, { headers: { "x-api-key": "${API_KEY}" }, timeout: 60000 });
+                const res = await axios.post("http://\${IP_VPN}:8000/create", { proto, duration: "1" }, { headers: { "x-api-key": "\${API_KEY}" }, timeout: 60000 });
                 if (res.data && res.data.success) {
-                    return ctx.reply("✅ *AKUN TRIAL BERHASIL!*\\n\\nUser: \`" + res.data.user + "\`\\n\\n<pre>" + res.data.link + "</pre>", { parse_mode: "HTML" });
+                    return ctx.reply("✅ *AKUN TRIAL BERHASIL!*\\\\n\\\\nUser: \`" + res.data.user + "\`\\\\n\\\\n<pre>" + res.data.link + "</pre>", { parse_mode: "HTML" });
                 }
             } catch (err) { return ctx.reply("❌ Gagal membuat trial."); }
             return;
@@ -142,7 +147,7 @@ const vpnActions = `
         return ctx.reply("✍️ *Silakan masukkan Username yang Anda inginkan:*", { parse_mode: "Markdown" });
     });
 
-    bot.action(/vpn_pay_(auto|manual)\\|(.+)/, async (ctx) => {
+    bot.action(/vpn_pay_(auto|manual)\\\\|(.+)/, async (ctx) => {
         try { await ctx.answerCbQuery().catch(() => {}); } catch (e) {}
         const method = ctx.match[1];
         const parts = ctx.match[2].split("|");
@@ -158,65 +163,60 @@ const vpnActions = `
             const pay = await createPayment(pType, price, config, { customerName: ctx.from.first_name, description: name });
             orders[fromId] = { type: "vpn_premium", proto, username: user, duration, name, amount: pay.amount || price, fee: pay.fee || 0, orderId: pay.orderId, paymentType: pType, chatId: ctx.chat.id, expireAt: Date.now() + payExpMin * 60 * 1000 };
             if (method === "auto") {
-                const caption = "✨ *TAGIHAN PEMBAYARAN* ✨\\n\\n📦 *Produk:* " + name + "\\n💰 *Total:* *Rp" + toRupiah(pay.amount || price) + "*\\n\\n⏰ *Masa Berlaku:* " + payExpMin + " Menit\\nSistem akan mengirimkan detail akun secara otomatis setelah lunas.";
+                const caption = "✨ *TAGIHAN PEMBAYARAN* ✨\\\\n\\\\n📦 *Produk:* " + name + "\\\\n💰 *Total:* *Rp" + toRupiah(pay.amount || price) + "*\\\\n\\\\n⏰ *Masa Berlaku:* " + payExpMin + " Menit\\\\nSistem akan mengirimkan detail akun secara otomatis setelah lunas.";
                 const qrMsg = await ctx.replyWithPhoto(pay.qris, { caption, parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: "❌ Batalkan Pesanan", callback_data: "cancel_order" }]] } });
                 orders[fromId].qrMessageId = qrMsg.message_id;
             } else {
-                await ctx.reply("🏦 *PEMBAYARAN MANUAL*\\n\\nSilakan transfer ke:\\nDANA: 083153170199\\n\\nKirim bukti transfer ke Admin @WendiVpn", { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: "❌ Batalkan Pesanan", callback_data: "cancel_order" }]] } });
+                await ctx.reply("🏦 *PEMBAYARAN MANUAL*\\\\n\\\\nSilakan transfer ke:\\nDANA: 083153170199\\\\n\\\\nKirim bukti transfer ke Admin @WendiVpn", { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: "❌ Batalkan Pesanan", callback_data: "cancel_order" }]] } });
             }
             startCheck(fromId, ctx);
         } catch (e) { ctx.reply("❌ Gagal membuat tagihan."); }
     });
     // --- VPN INTEGRATION END ---
-`;
+\`;
 
 if (!code.includes('bot.action("buy_vpn"')) {
-    code = code.replace('// ===== CALLBACK QUERIES =====', '// ===== CALLBACK QUERIES =====\n' + vpnActions);
+    code = code.replace('// ===== CALLBACK QUERIES =====', '// ===== CALLBACK QUERIES =====\\n' + vpnActions);
 }
 
-// 6. Add Text Input Handler
-const inputHandler = `
+const inputHandler = \`
         if (waitingVPN[fromId]) {
             const data = waitingVPN[fromId];
             const user = (msg.text || "").trim();
             delete waitingVPN[fromId];
-            if (!/^[a-zA-Z0-9]+$/.test(user)) return ctx.reply("❌ Username tidak valid.");
+            if (!/^[a-zA-Z0-9]+$/.test(user)) return ctx.reply("❌ Username tidak valid. Silakan ulangi dari menu.");
             const price = parseInt(data.price);
             const payKeyboard = [
                 [{ text: "💳 Otomatis (QRIS)", callback_data: "vpn_pay_auto|" + data.proto + "|" + user + "|" + price + "|" + data.duration + "|" + data.payExp }],
                 [{ text: "🏦 Manual", callback_data: "vpn_pay_manual|" + data.proto + "|" + user + "|" + price + "|" + data.duration + "|" + data.payExp }]
             ];
-            return ctx.reply("🛒 *Konfirmasi Pesanan*\\n\\nProduk: *VPN " + data.proto.toUpperCase() + "*\\nUser: *" + user + "*\\nTotal: *Rp" + toRupiah(price) + "*\\n\\nSilakan pilih metode pembayaran:", { parse_mode: "Markdown", reply_markup: { inline_keyboard: payKeyboard } });
+            return ctx.reply("🛒 *Konfirmasi Pesanan*\\\\n\\\\nProduk: *VPN " + data.proto.toUpperCase() + "*\\\\nUser: *" + user + "*\\\\nTotal: *Rp" + toRupiah(price) + "*\\\\n\\\\nSilakan pilih metode pembayaran:", { parse_mode: "Markdown", reply_markup: { inline_keyboard: payKeyboard } });
         }
-`;
+\`;
 
 if (!code.includes('waitingVPN[fromId]')) {
     code = code.replace('if (!isCmd) return;', 'if (!isCmd && !waitingVPN[fromId]) return;' + inputHandler);
 }
 
-// 7. Add Delivery Logic
-const deliveryLogic = `
+const deliveryLogic = \`
             if (o.type === "vpn_premium") {
-                await ctx.telegram.sendMessage(o.chatId, "⏳ *Pembayaran Diterima!*\\nSedang membuat akun Anda...", { parse_mode: "Markdown" });
+                await ctx.telegram.sendMessage(o.chatId, "⏳ *Pembayaran Diterima!*\\\\nSedang membuat akun Anda...", { parse_mode: "Markdown" });
                 try {
-                    const res = await axios.post("http://${IP_VPN}:8000/create", { user: o.username, proto: o.proto, duration: o.duration }, { headers: { "x-api-key": "VALL-PREMIUM-KEY-99" }, timeout: 60000 });
+                    const res = await axios.post("http://\${IP_VPN}:8000/create", { user: o.username, proto: o.proto, duration: o.duration }, { headers: { "x-api-key": "\${API_KEY}" }, timeout: 60000 });
                     if (res.data && res.data.success) {
-                        return ctx.telegram.sendMessage(o.chatId, "✅ *PESANAN SELESAI!*\\n\\n<pre>" + res.data.link + "</pre>", { parse_mode: "HTML" });
+                        return ctx.telegram.sendMessage(o.chatId, "✅ *PESANAN SELESAI!*\\\\n\\\\n<pre>" + res.data.link + "</pre>", { parse_mode: "HTML" });
                     }
                 } catch (err) { return ctx.telegram.sendMessage(o.chatId, "❌ Gagal membuat akun. Silakan hubungi admin."); }
             }
-`;
+\`;
 
-if (!code.includes('o.type === "vpn_premium"')) {
-    code = code.replace('if (o.type === "panel") {', deliveryLogic + '\n            if (o.type === "panel") {');
+if (!code.includes('type === "vpn_premium"')) {
+    code = code.replace('if (o.type === "panel") {', deliveryLogic + '\\n            if (o.type === "panel") {');
 }
 
-fs.writeFileSync(botPath, code);
-EOF_JS
+fs.writeFileSync('bot.js', code);
+EOF
 
-# Jalankan Injeksi dengan environment variable
-export IP_VPN=$IP_VPN
-export API_KEY=$API_KEY
 node inject_vpn.js
 rm inject_vpn.js
 
