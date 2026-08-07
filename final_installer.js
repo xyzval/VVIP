@@ -1,41 +1,21 @@
 const fs = require('fs');
-const path = require('path');
 
 const botPath = 'bot.js';
 const bakPath = 'bot.js.bak';
 
-// Ambil IP_VPN dari environment variable
 const IP_VPN = process.env.IP_VPN || '104.207.93.176';
 const API_KEY = process.env.API_KEY || 'VALL-PREMIUM-KEY-99';
 
-console.log(`Setting up Bot with VPN IP: ${IP_VPN}`);
-
-if (!fs.existsSync(bakPath)) {
-    console.log('Creating initial backup...');
-    fs.copyFileSync(botPath, bakPath);
-}
-
 let code = fs.readFileSync(bakPath, 'utf8');
 
-// 1. Add global state variables
+// 1. Add state and axios
 if (!code.includes('const waitingVPN = {};')) {
     code = code.replace('const orders = {};', 'const orders = {};\nconst waitingVPN = {};');
 }
 
-// 2. Tulis ulang fungsi mainKeyboard (PENTING: IP harus masuk di sini)
-const vpnButtonLogic = `
-    try {
-        const resCheck = await axios.get("http://${IP_VPN}:8000/products", {
-            headers: { "x-api-key": "${API_KEY}" },
-            timeout: 3000
-        });
-        if (resCheck.data && resCheck.data.success) {
-            keyboard.splice(2, 0, [{ text: "🛡️ Beli Akun VPN", callback_data: "buy_vpn" }]);
-        }
-    } catch (e) {}
-`;
-
-const mainKeyboardFunc = `const mainKeyboard = async (ctx) => {
+// 2. Put Button PERMANENTLY (No auto-detect for now, to ensure it shows up)
+// We put it in mainKeyboard function
+const simpleKeyboardFunc = `const mainKeyboard = (ctx) => {
     const keyboard = [
         [
             { text: "📱 Beli Apps Premium",  callback_data: "buy_apps"  },
@@ -45,21 +25,25 @@ const mainKeyboardFunc = `const mainKeyboard = async (ctx) => {
             { text: "💻 Beli VPS Dedicated",  callback_data: "buy_vps" }
         ],
         [
+            { text: "🛡️ Beli Akun VPN", callback_data: "buy_vpn" }
+        ],
+        [
             { text: "📜 Syarat & Ketentuan", callback_data: "snk_menu" }
         ]
     ];
-${vpnButtonLogic}
     if (isOwner(ctx)) {
         keyboard.push([{ text: "🕊️ Owner Menu", callback_data: "owner_menu" }]);
     }
     return { inline_keyboard: keyboard };
 };`;
 
-code = code.replace(/const mainKeyboard = \(ctx\) => \{[\s\S]*?return \{ inline_keyboard: keyboard \};\s+\};/s, mainKeyboardFunc);
-code = code.replace(/reply_markup: mainKeyboard\(ctx\)/g, 'reply_markup: await mainKeyboard(ctx)');
+code = code.replace(/const mainKeyboard = \(ctx\) => \{[\s\S]*?return \{ inline_keyboard: keyboard \};\s+\};/s, simpleKeyboardFunc);
 
-// 3. Add all actions and text handlers in one safe block
-const vpnLogicBlock = `
+// 3. Revert calls to non-async
+code = code.replace(/reply_markup: await mainKeyboard\(ctx\)/g, 'reply_markup: mainKeyboard(ctx)');
+
+// 4. Add the Actions (Buy, Order, Pay)
+const vpnActions = `
     // --- VPN INTEGRATION START ---
     bot.action("buy_vpn", async (ctx) => {
         try { await ctx.answerCbQuery().catch(() => {}); } catch (e) {}
@@ -103,7 +87,7 @@ const vpnLogicBlock = `
             try {
                 const res = await axios.post("http://${IP_VPN}:8000/create", { proto, duration: "1" }, { headers: { "x-api-key": "${API_KEY}" }, timeout: 60000 });
                 if (res.data && res.data.success) {
-                    return ctx.reply("✅ *AKUN TRIAL BERHASIL!*\\n\\nUser: " + res.data.user + "\\n\\n<pre>" + res.data.link + "</pre>", { parse_mode: "HTML" });
+                    return ctx.reply("✅ *AKUN TRIAL BERHASIL!*\\n\\nUser: \`" + res.data.user + "\`\\n\\n<pre>" + res.data.link + "</pre>", { parse_mode: "HTML" });
                 }
             } catch (err) { return ctx.reply("❌ Gagal membuat trial."); }
             return;
@@ -139,12 +123,9 @@ const vpnLogicBlock = `
     });
     // --- VPN INTEGRATION END ---
 `;
+code = code.replace('// ===== CALLBACK QUERIES =====', '// ===== CALLBACK QUERIES =====\n' + vpnActions);
 
-if (!code.includes('bot.action("buy_vpn"')) {
-    code = code.replace('// ===== CALLBACK QUERIES =====', '// ===== CALLBACK QUERIES =====\n' + vpnLogicBlock);
-}
-
-// 4. Input Handler
+// 5. Input Handler
 const inputHandler = `
         if (waitingVPN[fromId]) {
             const data = waitingVPN[fromId];
@@ -159,12 +140,9 @@ const inputHandler = `
             return ctx.reply("🛒 *Konfirmasi Pesanan*\\n\\nProduk: *VPN " + data.proto.toUpperCase() + "*\\nUser: *" + user + "*\\nTotal: *Rp" + toRupiah(price) + "*\\n\\nSilakan pilih metode pembayaran:", { parse_mode: "Markdown", reply_markup: { inline_keyboard: payKeyboard } });
         }
 `;
+code = code.replace('if (!isCmd) return;', 'if (!isCmd && !waitingVPN[fromId]) return;' + inputHandler);
 
-if (!code.includes('waitingVPN[fromId]')) {
-    code = code.replace('if (!isCmd) return;', 'if (!isCmd && !waitingVPN[fromId]) return;' + inputHandler);
-}
-
-// 5. Delivery Logic
+// 6. Delivery Logic
 const deliveryLogic = `
             if (o.type === "vpn_premium") {
                 await ctx.telegram.sendMessage(o.chatId, "⏳ *Pembayaran Diterima!*\\nSedang membuat akun Anda...", { parse_mode: "Markdown" });
@@ -176,10 +154,7 @@ const deliveryLogic = `
                 } catch (err) { return ctx.telegram.sendMessage(o.chatId, "❌ Gagal membuat akun."); }
             }
 `;
-
-if (!code.includes('o.type === "vpn_premium"')) {
-    code = code.replace('if (o.type === "panel") {', deliveryLogic + '\n            if (o.type === "panel") {');
-}
+code = code.replace('if (o.type === "panel") {', deliveryLogic + '\n            if (o.type === "panel") {');
 
 fs.writeFileSync(botPath, code);
-console.log('DONE');
+console.log('Bot Rebuilt with PERMANENT VPN Button.');
