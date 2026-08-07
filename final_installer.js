@@ -4,22 +4,25 @@ const path = require('path');
 const botPath = 'bot.js';
 const bakPath = 'bot.js.bak';
 
-// Use env or default
+// Ambil IP_VPN dari environment variable
 const IP_VPN = process.env.IP_VPN || '104.207.93.176';
 const API_KEY = process.env.API_KEY || 'VALL-PREMIUM-KEY-99';
 
+console.log(`Setting up Bot with VPN IP: ${IP_VPN}`);
+
 if (!fs.existsSync(bakPath)) {
+    console.log('Creating initial backup...');
     fs.copyFileSync(botPath, bakPath);
 }
 
 let code = fs.readFileSync(bakPath, 'utf8');
 
-// 1. Add state and axios
+// 1. Add global state variables
 if (!code.includes('const waitingVPN = {};')) {
     code = code.replace('const orders = {};', 'const orders = {};\nconst waitingVPN = {};');
 }
 
-// 2. Rebuild mainKeyboard function
+// 2. Tulis ulang fungsi mainKeyboard (PENTING: IP harus masuk di sini)
 const vpnButtonLogic = `
     try {
         const resCheck = await axios.get("http://${IP_VPN}:8000/products", {
@@ -27,7 +30,7 @@ const vpnButtonLogic = `
             timeout: 3000
         });
         if (resCheck.data && resCheck.data.success) {
-            keyboard.push([{ text: "🛡️ Beli Akun VPN", callback_data: "buy_vpn" }]);
+            keyboard.splice(2, 0, [{ text: "🛡️ Beli Akun VPN", callback_data: "buy_vpn" }]);
         }
     } catch (e) {}
 `;
