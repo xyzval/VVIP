@@ -1,16 +1,12 @@
 const fs = require('fs');
+const path = require('path');
 
 const botPath = 'bot.js';
 const bakPath = 'bot.js.bak';
 
 // Use env or default
-const IP_VPN = process.env.IP_VPN;
+const IP_VPN = process.env.IP_VPN || '104.207.93.176';
 const API_KEY = process.env.API_KEY || 'VALL-PREMIUM-KEY-99';
-
-if (!IP_VPN) {
-    console.error('ERROR: IP_VPN environment variable is required.');
-    process.exit(1);
-}
 
 if (!fs.existsSync(bakPath)) {
     fs.copyFileSync(botPath, bakPath);
