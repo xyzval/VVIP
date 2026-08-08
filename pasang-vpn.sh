@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==========================================
-# VPN BRIDGE INSTALLER FOR TELEBOT (FIXED)
+# VPN BRIDGE INSTALLER FOR TELEBOT (ULTRA)
 # ==========================================
 
 clear
@@ -35,7 +35,6 @@ fi
 
 cd "$BOT_DIR"
 echo -e "\033[1;32m✅ Folder ditemukan: $BOT_DIR\033[0m"
-echo -e ""
 
 # 1. Input Data
 if [ -z "$IP_VPN" ]; then
@@ -52,7 +51,7 @@ echo -e "\033[1;32m✅ Backup bot.js.bak berhasil dibuat.\033[0m"
 echo "⏳ Memasang library axios..."
 npm install axios --save >/dev/null 2>&1
 
-# 4. Injeksi Kode menggunakan Python (Paling Aman untuk Variable Passing)
+# 4. Injeksi Kode menggunakan Python
 echo "⏳ Menyuntikkan fitur VPN ke bot.js..."
 python3 - <<EOF_PY
 import os
@@ -61,18 +60,21 @@ import re
 ip_vpn = "$IP_VPN"
 api_key = "$API_KEY"
 
-with open('bot.js', 'r') as f:
-    code = f.read()
+def inject():
+    with open('bot.js', 'r') as f:
+        code = f.read()
 
-# CLEANUP: Hapus suntikan lama jika ada agar tidak double
-code = code.replace('\nconst waitingVPN = {};\n', '')
-code = re.sub(r'// --- VPN INTEGRATION START ---.*?// --- VPN INTEGRATION END ---', '', code, flags=re.DOTALL)
+    # --- CLEANUP OLD INJECTIONS ---
+    code = code.replace('\nconst waitingVPN = {};\n', '')
+    code = re.sub(r'// --- VPN INTEGRATION START ---.*?// --- VPN INTEGRATION END ---', '', code, flags=re.DOTALL)
+    
+    # --- 1. ADD STATE ---
+    if 'const waitingVPN = {};' not in code:
+        code = code.replace('const orders = {};', 'const orders = {};\\nconst waitingVPN = {};')
 
-# 1. Tambah State
-code = code.replace('const orders = {};', 'const orders = {};\nconst waitingVPN = {};')
-
-# 2. Rebuild mainKeyboard function
-new_kb = f"""const mainKeyboard = async (ctx) => {{
+    # --- 2. REBUILD KEYBOARD ---
+    # We replace the entire mainKeyboard function to be sure it's correct
+    new_kb = f"""const mainKeyboard = async (ctx) => {{
     const keyboard = [
         [
             {{ text: "📱 Beli Apps Premium",  callback_data: "buy_apps"  }},
@@ -86,8 +88,8 @@ new_kb = f"""const mainKeyboard = async (ctx) => {{
         ]
     ];
     try {{
-        const res = await axios.get("http://{{ip_vpn}}:8000/products", {{
-            headers: {{ "x-api-key": "{{api_key}}" }},
+        const res = await axios.get("http://{ip_vpn}:8000/products", {{
+            headers: {{ "x-api-key": "{api_key}" }},
             timeout: 2500
         }});
         if (res.data && res.data.success) {{
@@ -99,22 +101,21 @@ new_kb = f"""const mainKeyboard = async (ctx) => {{
     }}
     return {{ inline_keyboard: keyboard }};
 }};"""
+    
+    code = re.sub(r'const mainKeyboard = \(ctx\) => \{{.*?return \{{ inline_keyboard: keyboard \}};\s+\}};', new_kb, code, flags=re.DOTALL)
+    
+    # Ensure all calls to mainKeyboard are awaited
+    code = code.replace('reply_markup: mainKeyboard(ctx)', 'reply_markup: await mainKeyboard(ctx)')
 
-# Replace the whole mainKeyboard function
-code = re.sub(r'const mainKeyboard = \(ctx\) => \{{.*?return \{{ inline_keyboard: keyboard \}};\s+\}};', new_kb, code, flags=re.DOTALL)
-
-# 3. Ensure awaits
-code = code.replace('reply_markup: mainKeyboard(ctx)', 'reply_markup: await mainKeyboard(ctx)')
-
-# 4. Add Actions
-new_actions = f"""
+    # --- 3. ADD ACTIONS ---
+    new_actions = f"""
     // --- VPN INTEGRATION START ---
     bot.action("buy_vpn", async (ctx) => {{
         try {{ await ctx.answerCbQuery().catch(() => {{}}); }} catch (e) {{}}
         ctx.reply("⏳ *Mengambil daftar produk dari server...*", {{ parse_mode: "Markdown" }});
         try {{
-            const res = await axios.get("http://{{ip_vpn}}:8000/products", {{
-                headers: {{ "x-api-key": "{{api_key}}" }}, timeout: 10000
+            const res = await axios.get("http://{ip_vpn}:8000/products", {{
+                headers: {{ "x-api-key": "{api_key}" }}, timeout: 10000
             }});
             if (res.data && res.data.success) {{
                 const products = res.data.data;
@@ -146,18 +147,27 @@ new_actions = f"""
         const payExp = parts[3];
         const fromId = ctx.from.id;
         if (proto === "none") return;
+        
         if (price === 0) {{
+            const trialFile = 'trial_history.json';
+            let trialData = {{}};
+            try {{ if (fs.existsSync(trialFile)) trialData = JSON.parse(fs.readFileSync(trialFile, 'utf8')); }} catch (e) {{}}
+            const today = new Date().toISOString().split('T')[0];
+            if (trialData[fromId] === today) return ctx.reply("❌ *Batas Trial Terlampaui!*\\\\n\\\\nAnda sudah mengambil trial hari ini. Silakan beli paket premium.", {{ parse_mode: "Markdown" }});
+            
             ctx.reply("⏳ *Sedang menyiapkan akun TRIAL 15 Menit...*", {{ parse_mode: "Markdown" }});
             try {{
-                const res = await axios.post("http://{{ip_vpn}}:8000/create", {{ proto, duration: "1" }}, {{ headers: {{ "x-api-key": "{{api_key}}" }}, timeout: 60000 }});
+                const res = await axios.post("http://{ip_vpn}:8000/create", {{ proto, duration: "1" }}, {{ headers: {{ "x-api-key": "{api_key}" }}, timeout: 60000 }});
                 if (res.data && res.data.success) {{
-                    return ctx.reply("✅ *AKUN TRIAL BERHASIL!*\\\\n\\\\nUser: \`" + res.data.user + "\`\\\\n\\\\n<pre>" + res.data.link + "</pre>", {{ parse_mode: "HTML" }});
-                }
+                    trialData[fromId] = today;
+                    fs.writeFileSync(trialFile, JSON.stringify(trialData));
+                    return ctx.reply("✅ *AKUN TRIAL BERHASIL!*\\\\n\\\\nUser: `" + res.data.user + "`\\\\n\\\\n<pre>" + res.data.link + "</pre>", {{ parse_mode: "HTML" }});
+                }}
             }} catch (err) {{ return ctx.reply("❌ Gagal membuat trial."); }}
             return;
         }}
         waitingVPN[fromId] = {{ proto, price, duration, payExp }};
-        return ctx.reply("✍️ *Silakan masukkan Username yang Anda inginkan:*", {{ parse_mode: "Markdown" }});
+        return ctx.reply("✍️ *Silakan masukkan Username yang Anda inginkan:*\\\\n(Huruf dan angka saja, tanpa spasi)", {{ parse_mode: "Markdown" }});
     }});
 
     bot.action(/vpn_pay_(auto|manual)\\\\|(.+)/, async (ctx) => {{
@@ -187,13 +197,13 @@ new_actions = f"""
     }});
     // --- VPN INTEGRATION END ---
 """
-code = code.replace('// ===== CALLBACK QUERIES =====', '// ===== CALLBACK QUERIES =====\n' + new_actions)
+    code = code.replace('// ===== CALLBACK QUERIES =====', '// ===== CALLBACK QUERIES =====\\n' + new_actions)
 
-# Input Handler
-input_logic = """
+    # --- 4. INPUT HANDLER ---
+    input_logic = """
         if (waitingVPN[fromId]) {
             const data = waitingVPN[fromId];
-            const user = (msg.text || "").trim();
+            const user = (ctx.message.text || "").trim();
             delete waitingVPN[fromId];
             if (!/^[a-zA-Z0-9]+$/.test(user)) return ctx.reply("❌ Username tidak valid.");
             const price = parseInt(data.price);
@@ -201,31 +211,33 @@ input_logic = """
                 [{ text: "💳 Otomatis (QRIS)", callback_data: "vpn_pay_auto|" + data.proto + "|" + user + "|" + price + "|" + data.duration + "|" + data.payExp }],
                 [{ text: "🏦 Manual", callback_data: "vpn_pay_manual|" + data.proto + "|" + user + "|" + price + "|" + data.duration + "|" + data.payExp }]
             ];
-            return ctx.reply("🛒 *Konfirmasi Pesanan*\\\\n\\\\nProduk: *VPN " + data.proto.toUpperCase() + "*\\\\nUser: *\" + user + \"*\\\\nTotal: *Rp\" + toRupiah(price) + \"*\\\\n\\\\nSilakan pilih metode pembayaran:", { parse_mode: "Markdown", reply_markup: { inline_keyboard: payKeyboard } });
+            return ctx.reply("🛒 *Konfirmasi Pesanan*\\n\\nProduk: *VPN " + data.proto.toUpperCase() + "*\\nUser: *" + user + "*\\nTotal: *Rp" + toRupiah(price) + "*\\n\\nSilakan pilih metode pembayaran:", { parse_mode: "Markdown", reply_markup: { inline_keyboard: payKeyboard } });
         }
 """
-code = code.replace('if (!isCmd) return;', 'if (!isCmd && !waitingVPN[fromId]) return;' + input_logic)
+    code = code.replace('if (!isCmd) return;', 'if (!isCmd && !waitingVPN[fromId]) return;' + input_logic)
 
-# Delivery Logic
-delivery = f"""
+    # --- 5. DELIVERY ---
+    delivery_logic = f"""
             if (o.type === "vpn_premium") {{
                 await ctx.telegram.sendMessage(o.chatId, "⏳ *Pembayaran Diterima!*\\\\nSedang membuat akun Anda...", {{ parse_mode: "Markdown" }});
                 try {{
-                    const res = await axios.post("http://{{ip_vpn}}:8000/create", {{ user: o.username, proto: o.proto, duration: o.duration }}, {{ headers: {{ "x-api-key": "{{api_key}}" }}, timeout: 60000 }});
+                    const res = await axios.post("http://{ip_vpn}:8000/create", {{ user: o.username, proto: o.proto, duration: o.duration }}, {{ headers: {{ "x-api-key": "{api_key}" }}, timeout: 60000 }});
                     if (res.data && res.data.success) {{
                         return ctx.telegram.sendMessage(o.chatId, \"✅ *PESANAN SELESAI!*\\\\n\\\\n<pre>\" + res.data.link + \"</pre>\", {{ parse_mode: \"HTML\" }});
                     }
                 }} catch (err) {{ return ctx.telegram.sendMessage(o.chatId, \"❌ Gagal membuat akun. Silakan hubungi admin.\"); }}
             }}
 """
-code = code.replace('if (o.type === "panel") {', delivery + '            if (o.type === "panel") {')
+    code = code.replace('if (o.type === "panel") {', delivery_logic + '            if (o.type === "panel") {')
 
-with open('bot.js', 'w') as f:
-    f.write(code)
+    with open('bot.js', 'w') as f:
+        f.write(code)
+
+inject()
 EOF_PY
 
 echo -e "\033[1;32m✅ INTEGRASI BERHASIL! Menghidupkan ulang bot...\033[0m"
-pm2 restart all
+pm2 restart all 2>/dev/null || node bot.js
 rm pasang-vpn.sh 2>/dev/null
 echo -e "\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
 echo -e "         PROSES SELESAI, CEK BOT ANDA!       "

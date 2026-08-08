@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 const app = express();
 const port = 8000;
 
-// API KEY UNTUK KEAMANAN (SILAKAN SIMPAN INI)
+// API KEY UNTUK KEAMANAN
 const SECRET_KEY = 'VALL-PREMIUM-KEY-99';
 
 app.use(bodyParser.json());
@@ -19,24 +19,48 @@ const auth = (req, res, next) => {
     }
 };
 
+// Endpoint untuk mengambil daftar produk
+app.get('/products', auth, (req, res) => {
+    const products = [
+        { id: "vmess", name: "🛍️ VMESS (30 Hari)", price: 4000, duration: 30, type: "premium" },
+        { id: "vless", name: "🛍️ VLESS (30 Hari)", price: 4000, duration: 30, type: "premium" },
+        { id: "trojan", name: "🛍️ TROJAN (30 Hari)", price: 4000, duration: 30, type: "premium" },
+        { id: "ssh", name: "🛍️ SSH WS (30 Hari)", price: 4000, duration: 30, type: "premium" },
+        { id: "vmess_trial", name: "🎁 TRIAL VMESS (15m)", price: 0, duration: 1, type: "trial" },
+        { id: "vless_trial", name: "🎁 TRIAL VLESS (15m)", price: 0, duration: 1, type: "trial" },
+        { id: "trojan_trial", name: "🎁 TRIAL TROJAN (15m)", price: 0, duration: 1, type: "trial" },
+        { id: "ssh_trial", name: "🎁 TRIAL SSH (15m)", price: 0, duration: 1, type: "trial" }
+    ];
+
+    res.json({
+        success: true,
+        server_name: "VPN SERVER SG-1",
+        payment_expiry: 15,
+        data: products
+    });
+});
+
 app.post('/create', auth, (req, res) => {
     const { user, proto, duration } = req.body;
     
-    if (!user || !proto || !duration) {
+    // Fallback username jika kosong (untuk trial)
+    const finalUser = user || "trial" + Math.floor(Math.random() * 10000);
+    const finalProto = proto.replace('_trial', ''); // Handle trial ID
+
+    if (!finalProto || !duration) {
         return res.status(400).json({ error: 'Data tidak lengkap' });
     }
 
     let cmd = '';
-    // Otomasi input ke script VPS
-    if (proto === 'vmess') cmd = `(echo ${user}; echo 2; echo 100; echo ${duration}; echo valls.cloud) | addws`;
-    else if (proto === 'vless') cmd = `(echo ${user}; echo 2; echo 100; echo ${duration}; echo valls.cloud) | addvless`;
-    else if (proto === 'trojan') cmd = `(echo ${user}; echo 2; echo 100; echo ${duration}; echo valls.cloud) | addtr`;
-    else if (proto === 'ssh') cmd = `(echo ${user}; echo ${user}123; echo ${duration}) | addssh`;
+    if (finalProto === 'vmess') cmd = `(echo ${finalUser}; echo 2; echo 100; echo ${duration}; echo valls.cloud) | addws`;
+    else if (finalProto === 'vless') cmd = `(echo ${finalUser}; echo 2; echo 100; echo ${duration}; echo valls.cloud) | addvless`;
+    else if (finalProto === 'trojan') cmd = `(echo ${finalUser}; echo 2; echo 100; echo ${duration}; echo valls.cloud) | addtr`;
+    else if (finalProto === 'ssh') cmd = `(echo ${finalUser}; echo ${finalUser}123; echo ${duration}) | addssh`;
+    else return res.status(400).json({ error: 'Protokol tidak dikenal' });
 
     exec(cmd, (err, stdout, stderr) => {
         if (err) return res.status(500).json({ error: 'Gagal eksekusi script' });
         
-        // Cari link di output
         const lines = stdout.split('\n');
         let link = '';
         lines.forEach(l => {
@@ -45,7 +69,7 @@ app.post('/create', auth, (req, res) => {
             }
         });
 
-        res.json({ success: true, protocol: proto, user: user, link: link });
+        res.json({ success: true, protocol: finalProto, user: finalUser, link: link });
     });
 });
 

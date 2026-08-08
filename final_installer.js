@@ -3,19 +3,32 @@ const fs = require('fs');
 const botPath = 'bot.js';
 const bakPath = 'bot.js.bak';
 
-const IP_VPN = process.env.IP_VPN || '104.207.93.176';
+const IP_VPN = process.env.IP_VPN;
 const API_KEY = process.env.API_KEY || 'VALL-PREMIUM-KEY-99';
+
+if (!IP_VPN) {
+    console.error('ERROR: IP_VPN environment variable is required.');
+    process.exit(1);
+}
+
+if (!fs.existsSync(bakPath)) {
+    fs.copyFileSync(botPath, bakPath);
+}
 
 let code = fs.readFileSync(bakPath, 'utf8');
 
-// 1. Add state and axios
+// Ensure axios is at the top
+if (!code.includes('const axios = require("axios");')) {
+    code = 'const axios = require("axios");\n' + code;
+}
+
+// State
 if (!code.includes('const waitingVPN = {};')) {
     code = code.replace('const orders = {};', 'const orders = {};\nconst waitingVPN = {};');
 }
 
-// 2. Put Button PERMANENTLY (No auto-detect for now, to ensure it shows up)
-// We put it in mainKeyboard function
-const simpleKeyboardFunc = `const mainKeyboard = (ctx) => {
+// Rebuild mainKeyboard with HARDCODED IP
+const mainKeyboardFunc = `const mainKeyboard = async (ctx) => {
     const keyboard = [
         [
             { text: "📱 Beli Apps Premium",  callback_data: "buy_apps"  },
@@ -37,12 +50,10 @@ const simpleKeyboardFunc = `const mainKeyboard = (ctx) => {
     return { inline_keyboard: keyboard };
 };`;
 
-code = code.replace(/const mainKeyboard = \(ctx\) => \{[\s\S]*?return \{ inline_keyboard: keyboard \};\s+\};/s, simpleKeyboardFunc);
+code = code.replace(/const mainKeyboard = \(ctx\) => \{[\s\S]*?return \{ inline_keyboard: keyboard \};\s+\};/s, mainKeyboardFunc);
+code = code.replace(/reply_markup: mainKeyboard\(ctx\)/g, 'reply_markup: await mainKeyboard(ctx)');
 
-// 3. Revert calls to non-async
-code = code.replace(/reply_markup: await mainKeyboard\(ctx\)/g, 'reply_markup: mainKeyboard(ctx)');
-
-// 4. Add the Actions (Buy, Order, Pay)
+// ACTIONS (Using the provided IP)
 const vpnActions = `
     // --- VPN INTEGRATION START ---
     bot.action("buy_vpn", async (ctx) => {
@@ -87,7 +98,7 @@ const vpnActions = `
             try {
                 const res = await axios.post("http://${IP_VPN}:8000/create", { proto, duration: "1" }, { headers: { "x-api-key": "${API_KEY}" }, timeout: 60000 });
                 if (res.data && res.data.success) {
-                    return ctx.reply("✅ *AKUN TRIAL BERHASIL!*\\n\\nUser: \`" + res.data.user + "\`\\n\\n<pre>" + res.data.link + "</pre>", { parse_mode: "HTML" });
+                    return ctx.reply("✅ *AKUN TRIAL BERHASIL!*\\n\\nUser: " + res.data.user + "\\n\\n<pre>" + res.data.link + "</pre>", { parse_mode: "HTML" });
                 }
             } catch (err) { return ctx.reply("❌ Gagal membuat trial."); }
             return;
@@ -123,9 +134,12 @@ const vpnActions = `
     });
     // --- VPN INTEGRATION END ---
 `;
-code = code.replace('// ===== CALLBACK QUERIES =====', '// ===== CALLBACK QUERIES =====\n' + vpnActions);
 
-// 5. Input Handler
+if (!code.includes('bot.action("buy_vpn"')) {
+    code = code.replace('// ===== CALLBACK QUERIES =====', '// ===== CALLBACK QUERIES =====\n' + vpnActions);
+}
+
+// Input Handler
 const inputHandler = `
         if (waitingVPN[fromId]) {
             const data = waitingVPN[fromId];
@@ -140,9 +154,12 @@ const inputHandler = `
             return ctx.reply("🛒 *Konfirmasi Pesanan*\\n\\nProduk: *VPN " + data.proto.toUpperCase() + "*\\nUser: *" + user + "*\\nTotal: *Rp" + toRupiah(price) + "*\\n\\nSilakan pilih metode pembayaran:", { parse_mode: "Markdown", reply_markup: { inline_keyboard: payKeyboard } });
         }
 `;
-code = code.replace('if (!isCmd) return;', 'if (!isCmd && !waitingVPN[fromId]) return;' + inputHandler);
 
-// 6. Delivery Logic
+if (!code.includes('waitingVPN[fromId]')) {
+    code = code.replace('if (!isCmd) return;', 'if (!isCmd && !waitingVPN[fromId]) return;' + inputHandler);
+}
+
+// Delivery
 const deliveryLogic = `
             if (o.type === "vpn_premium") {
                 await ctx.telegram.sendMessage(o.chatId, "⏳ *Pembayaran Diterima!*\\nSedang membuat akun Anda...", { parse_mode: "Markdown" });
@@ -154,7 +171,10 @@ const deliveryLogic = `
                 } catch (err) { return ctx.telegram.sendMessage(o.chatId, "❌ Gagal membuat akun."); }
             }
 `;
-code = code.replace('if (o.type === "panel") {', deliveryLogic + '\n            if (o.type === "panel") {');
+
+if (!code.includes('o.type === "vpn_premium"')) {
+    code = code.replace('if (o.type === "panel") {', deliveryLogic + '\n            if (o.type === "panel") {');
+}
 
 fs.writeFileSync(botPath, code);
-console.log('Bot Rebuilt with PERMANENT VPN Button.');
+console.log('DONE');

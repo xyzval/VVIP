@@ -1026,11 +1026,58 @@ function restart_system() {
 
 
 # ============================================================
+# VPN API NODE
+# ============================================================
+function ins_api() {
+    clear
+    print_install "Installing VPN API Node"
+    
+    # Install Node.js if not exists
+    if ! command -v node &>/dev/null; then
+        curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+        apt-get install -y nodejs
+    fi
+    
+    # Install PM2
+    if ! command -v pm2 &>/dev/null; then
+        npm install -g pm2
+    fi
+
+    # Setup API
+    mkdir -p /root/vpn-api
+    cat > /root/vpn-api/package.json <<EOF
+{
+  "name": "vpn-api",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "express": "^4.18.2",
+    "body-parser": "^1.20.2"
+  }
+}
+EOF
+
+    # Copy the API logic
+    # (Assuming index.js is already perfect in the repo)
+    wget -q -O /root/vpn-api/index.js "${REPO}vpn-api/index.js"
+    
+    cd /root/vpn-api
+    npm install
+    pm2 stop vpn-node-api 2>/dev/null
+    pm2 delete vpn-node-api 2>/dev/null
+    pm2 start index.js --name vpn-node-api
+    pm2 save
+    
+    cd /root
+    print_success "VPN API Node"
+}
+
+# ============================================================
 # MAIN INSTALLATION FLOW
 # ============================================================
 function instal() {
     clear
-    # Create directories first to prevent "No such file" errors during domain setup
+    # Create directories first
     mkdir -p /etc/xray
     mkdir -p /etc/v2ray
     mkdir -p /root
@@ -1053,6 +1100,7 @@ function instal() {
     ins_swab
     ins_Fail2ban
     ins_epro
+    ins_api
     ins_restart
     menu
     profile
