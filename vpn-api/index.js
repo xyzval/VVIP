@@ -1,78 +1,63 @@
 const express = require('express');
 const { exec } = require('child_process');
-const bodyParser = require('body-parser');
+const fs = require('fs');
 const app = express();
-const port = 8000;
+app.use(express.json());
 
-// API KEY UNTUK KEAMANAN
 const SECRET_KEY = 'VALL-PREMIUM-KEY-99';
+const DOMAIN = fs.existsSync('/etc/xray/domain') ? fs.readFileSync('/etc/xray/domain', 'utf8').trim() : 'localhost';
 
-app.use(bodyParser.json());
-
-// Middleware untuk cek API KEY
 const auth = (req, res, next) => {
-    const apiKey = req.headers['x-api-key'];
-    if (apiKey === SECRET_KEY) {
-        next();
-    } else {
-        res.status(401).json({ error: 'Unauthorized: API Key Salah' });
-    }
+    if (req.headers['x-api-key'] === SECRET_KEY) next();
+    else res.status(401).json({ error: 'Unauthorized' });
 };
 
-// Endpoint untuk mengambil daftar produk
 app.get('/products', auth, (req, res) => {
-    const products = [
-        { id: "vmess", name: "🛍️ VMESS (30 Hari)", price: 4000, duration: 30, type: "premium" },
-        { id: "vless", name: "🛍️ VLESS (30 Hari)", price: 4000, duration: 30, type: "premium" },
-        { id: "trojan", name: "🛍️ TROJAN (30 Hari)", price: 4000, duration: 30, type: "premium" },
-        { id: "ssh", name: "🛍️ SSH WS (30 Hari)", price: 4000, duration: 30, type: "premium" },
-        { id: "vmess_trial", name: "🎁 TRIAL VMESS (15m)", price: 0, duration: 1, type: "trial" },
-        { id: "vless_trial", name: "🎁 TRIAL VLESS (15m)", price: 0, duration: 1, type: "trial" },
-        { id: "trojan_trial", name: "🎁 TRIAL TROJAN (15m)", price: 0, duration: 1, type: "trial" },
-        { id: "ssh_trial", name: "🎁 TRIAL SSH (15m)", price: 0, duration: 1, type: "trial" }
-    ];
-
     res.json({
         success: true,
-        server_name: "VPN SERVER SG-1",
+        server_name: '🇸🇬 SG-VVIP PREMIUM SERVER',
         payment_expiry: 15,
-        data: products
+        data: [
+            { id: 'vmess', name: '🛍️ VMESS PREMIUM', price: 4000, duration: 30, type: 'premium' },
+            { id: 'vless', name: '🛍️ VLESS PREMIUM', price: 4000, duration: 30, type: 'premium' },
+            { id: 'trojan', name: '🛍️ TROJAN PREMIUM', price: 4000, duration: 30, type: 'premium' },
+            { id: 'ssh', name: '🛍️ SSH WS PREMIUM', price: 4000, duration: 30, type: 'premium' },
+            { id: 'vmess_trial', name: '⚡ TRIAL VMESS', price: 0, duration: 1, type: 'trial' },
+            { id: 'vless_trial', name: '⚡ TRIAL VLESS', price: 0, duration: 1, type: 'trial' },
+            { id: 'trojan_trial', name: '⚡ TRIAL TROJAN', price: 0, duration: 1, type: 'trial' },
+            { id: 'ssh_trial', name: '⚡ TRIAL SSH', price: 0, duration: 1, type: 'trial' }
+        ]
     });
 });
 
 app.post('/create', auth, (req, res) => {
-    const { user, proto, duration } = req.body;
+    let { user, proto, duration, iplimit } = req.body;
+    const isTrial = proto.endsWith('_trial');
+    const actualProto = isTrial ? proto.replace('_trial', '') : proto;
+    if (isTrial && !user) user = 'trial' + Math.floor(1000 + Math.random() * 9000);
     
-    // Fallback username jika kosong (untuk trial)
-    const finalUser = user || "trial" + Math.floor(Math.random() * 10000);
-    const finalProto = proto.replace('_trial', ''); // Handle trial ID
-
-    if (!finalProto || !duration) {
-        return res.status(400).json({ error: 'Data tidak lengkap' });
-    }
+    const finalIpLimit = iplimit || "2";
 
     let cmd = '';
-    if (finalProto === 'vmess') cmd = `(echo ${finalUser}; echo 2; echo 100; echo ${duration}; echo valls.cloud) | addws`;
-    else if (finalProto === 'vless') cmd = `(echo ${finalUser}; echo 2; echo 100; echo ${duration}; echo valls.cloud) | addvless`;
-    else if (finalProto === 'trojan') cmd = `(echo ${finalUser}; echo 2; echo 100; echo ${duration}; echo valls.cloud) | addtr`;
-    else if (finalProto === 'ssh') cmd = `(echo ${finalUser}; echo ${finalUser}123; echo ${duration}) | addssh`;
-    else return res.status(400).json({ error: 'Protokol tidak dikenal' });
+    if (actualProto === 'vmess') cmd = `(echo "${user}"; echo "${finalIpLimit}"; echo "0"; echo "${duration}"; echo "${DOMAIN}") | addws`;
+    else if (actualProto === 'vless') cmd = `(echo "${user}"; echo "${finalIpLimit}"; echo "0"; echo "${duration}"; echo "${DOMAIN}") | addvless`;
+    else if (actualProto === 'trojan') cmd = `(echo "${user}"; echo "${finalIpLimit}"; echo "0"; echo "${duration}"; echo "${DOMAIN}") | addtr`;
+    else if (actualProto === 'ssh') cmd = `(echo "${user}"; echo "${user}123"; echo "${duration}") | addssh`;
 
-    exec(cmd, (err, stdout, stderr) => {
-        if (err) return res.status(500).json({ error: 'Gagal eksekusi script' });
+    exec(cmd, (err, stdout) => {
+        if (err) return res.status(500).json({ error: 'Failed' });
+        const clean = stdout.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '');
+        const parts = clean.split("◇━━━━━━━━━━━━━━━━━◇");
+        let result = parts.length > 2 ? "◇━━━━━━━━━━━━━━━━━◇" + parts.slice(2).join("◇━━━━━━━━━━━━━━━━━◇") : clean;
         
-        const lines = stdout.split('\n');
-        let link = '';
-        lines.forEach(l => {
-            if (l.includes('vmess://') || l.includes('vless://') || l.includes('trojan://') || l.includes('SSH WS')) {
-                link = l.trim();
-            }
-        });
+        if (isTrial) {
+            exec(`echo "/usr/local/sbin/hapus-trial ${user} ${actualProto}" | at now + 15 minutes`);
+            result = result.replace(/Aktif Selama\s+:\s+\d+\s+Hari/g, 'Aktif Selama     : 15 Menit');
+            result += "\n\n⚠️ AKUN INI ADALAH TRIAL 15 MENIT\nAKUN AKAN DIHAPUS OTOMATIS.";
+        }
 
-        res.json({ success: true, protocol: finalProto, user: finalUser, link: link });
+        res.json({ success: true, link: result.trim(), user: user });
     });
 });
 
-app.listen(port, '0.0.0.0', () => {
-    console.log('Node API running on port ' + port);
-});
+app.listen(8000, '0.0.0.0', () => console.log('Premium API Node Active with Dynamic IP Limit'));
