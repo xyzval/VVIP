@@ -24,27 +24,40 @@ if [ -z "$BOT_DIR" ]; then
     BOT_DIR="/root/telebot"
 fi
 
-cd "$BOT_DIR"
+cd "$BOT_DIR" || exit 1
 
 # 1. Input Data
 if [ -z "$IP_VPN" ]; then
-    read -p "Masukkan IP VPS VPN Anda: " IP_VPN
+    read -rp "Masukkan IP VPS VPN Anda: " IP_VPN
 fi
-if [ -z "$IP_VPN" ]; then echo "❌ IP tidak boleh kosong!"; exit 1; fi
+
+if [ -z "$IP_VPN" ]; then 
+    echo -e "\033[1;31m❌ ERROR: IP VPN tidak boleh kosong!\033[0m"
+    exit 1
+fi
+
+# Ensure IP_VPN is exported for Python
+export IP_VPN=$IP_VPN
 API_KEY="VALL-PREMIUM-KEY-99"
 
 # 2. Backup bot.js
 cp bot.js bot.js.bak 2>/dev/null
 
 # 3. Install Library
+echo "⏳ Memasang library axios..."
 npm install axios --save >/dev/null 2>&1
 
-# 4. Injeksi Kode menggunakan Python (SAFE ESCAPING)
-python3 - <<'EOF_PY'
+# 4. Injeksi Kode menggunakan Python (ROBUST VERSION)
+echo "⏳ Menyuntikkan fitur VPN ke bot.js..."
+python3 - <<EOF
 import os
 import re
 
+# Safely get IP from environment or fallback
 ip_vpn = os.getenv("IP_VPN")
+if not ip_vpn:
+    ip_vpn = "$IP_VPN" # Fallback to shell variable if env is empty
+
 api_key = "VALL-PREMIUM-KEY-99"
 
 with open('bot.js', 'r') as f:
@@ -56,9 +69,9 @@ code = re.sub(r'// --- VPN INTEGRATION START ---.*?// --- VPN INTEGRATION END --
 
 # 1. State
 if 'const waitingVPN = {};' not in code:
-    code = code.replace('const orders = {};', 'const orders = {};\nconst waitingVPN = {};')
+    code = code.replace('const orders = {};', 'const orders = {};\\nconst waitingVPN = {};')
 
-# 2. Async Keyboard
+# 2. Keyboard
 kb_func = """const mainKeyboard = (ctx) => {
     const keyboard = [
         [
@@ -80,17 +93,17 @@ kb_func = """const mainKeyboard = (ctx) => {
     }
     return { inline_keyboard: keyboard };
 };"""
-# We keep it simple non-async for better compatibility with original base
 code = re.sub(r'const mainKeyboard = \(ctx\) => \{.*?return \{ inline_keyboard: keyboard \};\s+\};', kb_func, code, flags=re.DOTALL)
+code = code.replace('reply_markup: mainKeyboard(ctx)', 'reply_markup: mainKeyboard(ctx)')
 
-# 3. Actions (Dynamic IP Choices + Option 1 UI)
+# 3. Actions
 new_actions = r"""
     // --- VPN INTEGRATION START ---
     bot.action("buy_vpn", async (ctx) => {
         try { await ctx.answerCbQuery().catch(() => {}); } catch (e) {}
         ctx.reply("⏳ *Sedang menghubungkan ke server...*", { parse_mode: "Markdown" });
         try {
-            const res = await axios.get("http://""" + ip_vpn + r""":8000/products", {
+            const res = await axios.get("http://""" + str(ip_vpn) + r""":8000/products", {
                 headers: { "x-api-key": "VALL-PREMIUM-KEY-99" }, timeout: 10000
             });
             if (res.data && res.data.success) {
@@ -136,7 +149,7 @@ new_actions = r"""
         if (price === 0) {
             ctx.reply("⏳ *Sedang menyiapkan akun TRIAL 15 Menit...*", { parse_mode: "Markdown" });
             try {
-                const res = await axios.post("http://""" + ip_vpn + r""":8000/create", { proto, duration: "1" }, { headers: { "x-api-key": "VALL-PREMIUM-KEY-99" }, timeout: 60000 });
+                const res = await axios.post("http://""" + str(ip_vpn) + r""":8000/create", { proto, duration: "1" }, { headers: { "x-api-key": "VALL-PREMIUM-KEY-99" }, timeout: 60000 });
                 if (res.data && res.data.success) {
                     return ctx.reply("✅ *AKUN TRIAL BERHASIL!*\n━━━━━━━━━━━━━━━━━━\n👤 *User:* `" + res.data.user + "`\n⏰ *Aktif:* 15 Menit\n━━━━━━━━━━━━━━━━━━\n<pre>" + res.data.link + "</pre>", { parse_mode: "HTML" });
                 }
@@ -193,7 +206,7 @@ new_actions = r"""
         } catch (e) { ctx.reply("❌ Gagal membuat tagihan."); }
     });
     // --- VPN INTEGRATION END ---"""
-code = code.replace('// ===== CALLBACK QUERIES =====', '// ===== CALLBACK QUERIES =====\n' + new_actions)
+code = code.replace('// ===== CALLBACK QUERIES =====', '// ===== CALLBACK QUERIES =====\\n' + new_actions)
 
 # 4. Input Handler
 input_logic = """if (!isCmd && !waitingVPN[fromId]) return;
@@ -214,20 +227,20 @@ code = code.replace('if (!isCmd) return;', input_logic)
 
 # 5. Delivery
 delivery = r"""if (o.type === "vpn_premium") {
-                await ctx.telegram.sendMessage(o.chatId, "⏳ *Pembayaran Diterima!*\nSedang membuat akun premium Anda...", { parse_mode: "Markdown" });
+                await ctx.telegram.sendMessage(o.chatId, "⏳ *Pembayaran Diterima!*\\nSedang membuat akun premium Anda...", { parse_mode: "Markdown" });
                 try {
-                    const res = await axios.post("http://""" + ip_vpn + r""":8000/create", { user: o.username, proto: o.proto, duration: o.duration, iplimit: o.iplimit }, { headers: { "x-api-key": "VALL-PREMIUM-KEY-99" }, timeout: 60000 });
+                    const res = await axios.post("http://""" + str(ip_vpn) + r""":8000/create", { user: o.username, proto: o.proto, duration: o.duration, iplimit: o.iplimit }, { headers: { "x-api-key": "VALL-PREMIUM-KEY-99" }, timeout: 60000 });
                     if (res.data && res.data.success) {
-                        const finishMsg = "✅ *PESANAN SELESAI!*\n━━━━━━━━━━━━━━━━━━\nTerima kasih telah berlangganan! Berikut adalah detail akun Anda:\n\n<pre>" + res.data.link + "</pre>";
+                        const finishMsg = "✅ *PESANAN SELESAI!*\\n━━━━━━━━━━━━━━━━━━\\nTerima kasih telah berlangganan! Berikut adalah detail akun Anda:\\n\\n<pre>" + res.data.link + "</pre>";
                         return ctx.telegram.sendMessage(o.chatId, finishMsg, { parse_mode: "HTML" });
                     }
                 } catch (err) { return ctx.telegram.sendMessage(o.chatId, "❌ Gagal membuat akun. Hubungi admin."); }
             }"""
-code = code.replace('if (o.type === "panel") {', delivery + '\n            if (o.type === "panel") {')
+code = code.replace('if (o.type === "panel") {', delivery + '\\n            if (o.type === "panel") {')
 
 with open('bot.js', 'w') as f:
     f.write(code)
-EOF_PY
+EOF
 
 pm2 restart all 2>/dev/null || node bot.js
 echo -e "\033[1;32m✅ INTEGRASI BERHASIL!\033[0m"
