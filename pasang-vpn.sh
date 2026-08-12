@@ -49,15 +49,12 @@ npm install axios --save >/dev/null 2>&1
 
 # 4. Injeksi Kode menggunakan Python (ROBUST VERSION)
 echo "⏳ Menyuntikkan fitur VPN ke bot.js..."
-python3 - <<EOF
+python3 - <<'EOF'
 import os
 import re
 
-# Safely get IP from environment or fallback
-ip_vpn = os.getenv("IP_VPN")
-if not ip_vpn:
-    ip_vpn = "$IP_VPN" # Fallback to shell variable if env is empty
-
+# Safely get IP from environment
+ip_vpn = os.getenv("IP_VPN", "104.207.93.176")
 api_key = "VALL-PREMIUM-KEY-99"
 
 with open('bot.js', 'r') as f:
@@ -69,7 +66,7 @@ code = re.sub(r'// --- VPN INTEGRATION START ---.*?// --- VPN INTEGRATION END --
 
 # 1. State
 if 'const waitingVPN = {};' not in code:
-    code = code.replace('const orders = {};', 'const orders = {};\\nconst waitingVPN = {};')
+    code = code.replace('const orders = {};', 'const orders = {};\nconst waitingVPN = {};')
 
 # 2. Keyboard
 kb_func = """const mainKeyboard = (ctx) => {
@@ -206,7 +203,7 @@ new_actions = r"""
         } catch (e) { ctx.reply("❌ Gagal membuat tagihan."); }
     });
     // --- VPN INTEGRATION END ---"""
-code = code.replace('// ===== CALLBACK QUERIES =====', '// ===== CALLBACK QUERIES =====\\n' + new_actions)
+code = code.replace('// ===== CALLBACK QUERIES =====', '// ===== CALLBACK QUERIES =====\n' + new_actions)
 
 # 4. Input Handler
 input_logic = """if (!isCmd && !waitingVPN[fromId]) return;
@@ -236,7 +233,7 @@ delivery = r"""if (o.type === "vpn_premium") {
                     }
                 } catch (err) { return ctx.telegram.sendMessage(o.chatId, "❌ Gagal membuat akun. Hubungi admin."); }
             }"""
-code = code.replace('if (o.type === "panel") {', delivery + '\\n            if (o.type === "panel") {')
+code = code.replace('if (o.type === "panel") {', delivery + '\n            if (o.type === "panel") {')
 
 with open('bot.js', 'w') as f:
     f.write(code)
