@@ -816,6 +816,16 @@ function ins_backup() {
     mkdir -p /root/.config/rclone
     wget -O /root/.config/rclone/rclone.conf "${REPO}cfg_conf_js/rclone.conf" >/dev/null 2>&1
 
+    # Backup Google Drive -> pakai AKUN GOOGLE ANDA SENDIRI (bukan token orang lain)
+    if grep -q "GANTI_DENGAN_TOKEN" /root/.config/rclone/rclone.conf 2>/dev/null || ! grep -q "^\[mybackup\]" /root/.config/rclone/rclone.conf 2>/dev/null; then
+        echo ""
+        echo "[!] Backup Google Drive belum aktif."
+        echo "    Buat remote dengan akun Google ANDA sendiri, jalankan:"
+        echo "    rclone config  ->  n (new remote)  ->  nama: mybackup  ->  type: drive"
+        echo "    (login Google, scope drive, lalu save)"
+        echo ""
+    fi
+
     cd /bin
     git clone https://github.com/magnific0/wondershaper.git 2>/dev/null
     if [ -d wondershaper ]; then
