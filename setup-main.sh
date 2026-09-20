@@ -905,6 +905,9 @@ function menu() {
     chmod +x menu/*
     mv menu/* /usr/local/sbin
     rm -rf menu menu.zip
+    # Fix: overwrite xp dengan versi tanpa notif
+    cp -f /root/VVIP/files/xp /usr/local/sbin/xp 2>/dev/null
+    chmod +x /usr/local/sbin/xp 2>/dev/null
     print_success "Menu"
 }
 
