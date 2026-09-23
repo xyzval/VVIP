@@ -1,0 +1,60 @@
+function restore(){
+# Color
+RED='\033[0;31m'
+NC='\033[0m'
+GREEN='\033[0;32m'
+ORANGE='\033[0;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+LIGHT='\033[0;37m'
+clear
+# ==========================================
+# Getting
+clear
+echo -e "\033[1;93m┌──────────────────────────────────────────┐\033[0m"
+echo -e "\033[1;93m│$NC      INPUT LINK BACKUP VPS       $NC"|lolcat
+echo -e "\033[1;93m└──────────────────────────────────────────┘\033[0m"
+echo -e ""
+read -p "input Link backup :  " -e url
+echo -e ""
+
+# Extract file ID dari link Google Drive
+FILEID=$(echo "$url" | grep -oP "id=\K[^&]+" 2>/dev/null || echo "$url" | grep -oP "/d/\K[^/]+" 2>/dev/null || echo "")
+
+if [ -n "$FILEID" ]; then
+    echo "Downloading dari Google Drive (bypass virus scan)..."
+    
+    # Method: Gunakan curl dengan cookie dan acknowledgeAbuse
+    curl -sL -c /tmp/gd_cookies "https://drive.google.com/uc?export=download&id=$FILEID" -o /tmp/gd_page.html
+    
+    # Cek apakah file besar (butuh confirm) atau flagged (butuh acknowledgeAbuse)
+    CONFIRM=$(grep -oP 'confirm=([0-9A-Za-z_-]+)' /tmp/gd_page.html | head -1 | cut -d= -f2)
+    
+    if [ -n "$CONFIRM" ]; then
+        # File besar atau flagged - download dengan confirm + acknowledgeAbuse
+        echo "File besar terdeteksi, downloading..."
+        curl -L -b /tmp/gd_cookies "https://drive.google.com/uc?export=download&confirm=$CONFIRM&id=$FILEID&acknowledgeAbuse=true" -o backup.zip
+    else
+        # File kecil atau langsung download - gunakan acknowledgeAbuse
+        echo "Downloading..."
+        curl -L "https://drive.google.com/uc?export=download&acknowledgeAbuse=true&id=$FILEID" -o backup.zip
+    fi
+    
+    # Cek apakah download berhasil (bukan HTML error page)
+    if file backup.zip | grep -q "HTML"; then
+        echo -e "${RED}✗ Download gagal! File mungkin diblokir Google Drive.${NC}"
+        echo "Coba upload manual atau cek permission Google Drive."
+        rm -f backup.zip /tmp/gd_cookies /tmp/gd_page.html
+        read -p "Press [ENTER] to back"
+        menu-bckp
+        return
+    fi
+else
+    # Bukan Google Drive - pakai wget biasa
+    wget -O backup.zip "$url"
+fi
+
+# Unzip dengan password, fallback tanpa password
+unzip -P "vallstore" backup.zip 2>/dev/null || unzip backup.zip
+rm -f backup.zip /tmp/gd_cookies /tmp/gd_page.html
