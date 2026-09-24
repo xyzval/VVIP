@@ -51,20 +51,23 @@ FILEID=$(echo "$url" | grep -oP "id=\K[^&]+" 2>/dev/null || echo "$url" | grep -
 if [ -n "$FILEID" ]; then
     echo "Downloading dari Google Drive (bypass virus scan)..."
     
-    # Method: Gunakan curl dengan cookie dan acknowledgeAbuse
+    # Step 1: Get warning page and extract confirm token + uuid
     curl -sL -c /tmp/gd_cookies "https://drive.google.com/uc?export=download&id=$FILEID" -o /tmp/gd_page.html
     
-    # Cek apakah file besar (butuh confirm) atau flagged (butuh acknowledgeAbuse)
+    # Extract confirm token
     CONFIRM=$(grep -oP 'confirm=([0-9A-Za-z_-]+)' /tmp/gd_page.html | head -1 | cut -d= -f2)
     
-    if [ -n "$CONFIRM" ]; then
-        # File besar atau flagged - download dengan confirm + acknowledgeAbuse
-        echo "File besar terdeteksi, downloading..."
-        curl -L -b /tmp/gd_cookies "https://drive.google.com/uc?export=download&confirm=$CONFIRM&id=$FILEID&acknowledgeAbuse=true" -o backup.zip
+    # Extract uuid
+    UUID=$(grep -oP 'uuid" value="\K[0-9a-f-]+' /tmp/gd_page.html | head -1)
+    
+    if [ -n "$CONFIRM" ] || [ -n "$UUID" ]; then
+        # Step 2: Download with confirm and uuid (bypass virus scan)
+        echo "Bypassing virus scan..."
+        curl -L -b /tmp/gd_cookies "https://drive.usercontent.google.com/download?id=$FILEID&export=download&confirm=t&uuid=$UUID" -o backup.zip
     else
-        # File kecil atau langsung download - gunakan acknowledgeAbuse
+        # No warning page, direct download
         echo "Downloading..."
-        curl -L "https://drive.google.com/uc?export=download&acknowledgeAbuse=true&id=$FILEID" -o backup.zip
+        curl -L "https://drive.google.com/uc?export=download&id=$FILEID" -o backup.zip
     fi
     
     # Cek apakah download berhasil (bukan HTML error page)
@@ -84,6 +87,33 @@ fi
 # Unzip dengan password, fallback tanpa password
 unzip -P "vallstore" backup.zip 2>/dev/null || unzip backup.zip
 rm -f backup.zip /tmp/gd_cookies /tmp/gd_page.html
+echo "Start Restore"
+cd /root/backup
+cp passwd /etc/
+cp group /etc/
+cp shadow /etc/
+cp gshadow /etc/
+cp crontab /etc/
+cp .ssh.db /etc/ssh/
+cp .vmess.db /etc/vmess/
+cp .vless.db /etc/vless/
+cp .trojan.db /etc/trojan/
+cp .shadowsocks.db /etc/shadowsocks/
+cp -r kyt /var/lib/
+cp -r xray /etc/
+cp -r html /var/www/
+cp -r limit /etc/kyt/
+cp -r vmess /etc/
+cp -r trojan /etc/
+cp -r vless /etc/
+cp -r shadowsocks /etc/
+notif_restore
+rm -rf /root/backup
+rm -f backup.zip
+echo ""
+read -p "Selesai Restore press !! [ ENTER ] To Menu"
+menu
+}
 function notif_restore(){
 CHATID="$CHATID"
 KEY="$KEY"
