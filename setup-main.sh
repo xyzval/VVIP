@@ -432,8 +432,33 @@ function install_xray() {
     [ ! -d $domainSock_dir ] && mkdir $domainSock_dir
     chown www-data:www-data $domainSock_dir
 
-    bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u www-data --version 1.8.3
+    # [FIX] Unduh binary Xray LANGSUNG dari rilis GitHub + verifikasi.
+    # Metode lama: bash -c "$(curl -L .../install-release.sh)" — rapuh (unduhan
+    # script pemasang + tanya api.github.com + unduh ulang); satu langkah tersendat
+    # = tidak ada binary terpasang, dan kegagalannya tidak pernah terdeteksi.
+    if ! command -v wget >/dev/null 2>&1 || ! command -v unzip >/dev/null 2>&1; then
+        echo -e "${RED}ERROR: wget/unzip belum terpasang (tahap instalasi paket gagal?). Instalasi dihentikan — perbaiki apt/jaringan lalu jalankan installer lagi.${NC}"
+        exit 1
+    fi
+    mkdir -p /etc/xray /usr/local/share/xray
+    _xray_tmp="$(mktemp -d)"
+    if ! wget -q -O "${_xray_tmp}/xray.zip" "https://github.com/XTLS/Xray-core/releases/download/v1.8.3/Xray-linux-64.zip" || [ ! -s "${_xray_tmp}/xray.zip" ]; then
+        echo -e "${RED}ERROR: Gagal mengunduh Xray 1.8.3 dari GitHub. Instalasi dihentikan — periksa jaringan VPS lalu jalankan installer lagi.${NC}"
+        rm -rf "${_xray_tmp}"
+        exit 1
+    fi
+    unzip -o "${_xray_tmp}/xray.zip" xray -d "${_xray_tmp}" >/dev/null 2>&1
+    install -m 755 "${_xray_tmp}/xray" /usr/local/bin/xray 2>/dev/null
+    rm -rf "${_xray_tmp}"
+    if ! /usr/local/bin/xray version >/dev/null 2>&1; then
+        echo -e "${RED}ERROR: Binary Xray gagal dipasang/dijalankan. Instalasi dihentikan.${NC}"
+        exit 1
+    fi
     wget -O /etc/xray/config.json "${REPO}cfg_conf_js/config.json" >/dev/null 2>&1
+    if [ ! -s /etc/xray/config.json ]; then
+        echo -e "${RED}ERROR: Gagal mengunduh config.json dari repo. Instalasi dihentikan — periksa jaringan VPS lalu jalankan installer lagi.${NC}"
+        exit 1
+    fi
     wget -O /etc/systemd/system/runn.service "${REPO}files/runn.service" >/dev/null 2>&1
 
     domain=$(cat /etc/xray/domain 2>/dev/null)
@@ -901,10 +926,20 @@ function menu() {
     clear
     print_install "Installing Menu"
     wget -q ${REPO}Features/menu.zip
+    # [FIX] Verifikasi unduhan & hasil pemasangan menu — gagal harus berhenti,
+    # bukan diam (dulu /usr/local/sbin bisa kosong dan login hanya tampil -bash).
+    if [ ! -s menu.zip ]; then
+        echo -e "${RED}ERROR: Gagal mengunduh menu.zip dari repo. Instalasi dihentikan — periksa jaringan VPS lalu jalankan installer lagi.${NC}"
+        exit 1
+    fi
     unzip -o menu.zip >/dev/null 2>&1
-    chmod +x menu/*
-    mv menu/* /usr/local/sbin
+    chmod +x menu/* 2>/dev/null
+    mv menu/* /usr/local/sbin 2>/dev/null
     rm -rf menu menu.zip
+    if [ ! -x /usr/local/sbin/menu ]; then
+        echo -e "${RED}ERROR: Menu gagal terpasang (/usr/local/sbin/menu tidak ditemukan). Instalasi dihentikan.${NC}"
+        exit 1
+    fi
     # Fix: overwrite xp dengan versi tanpa notif
     cp -f /root/VVIP/files/xp /usr/local/sbin/xp 2>/dev/null
     chmod +x /usr/local/sbin/xp 2>/dev/null
@@ -1140,6 +1175,15 @@ secs_to_human "$(($(date +%s) - ${start}))"
 sudo hostnamectl set-hostname $username
 sleep 2
 clear
+# [FIX] Verifikasi akhir: dilarang klaim sukses bila Xray tidak terpasang
+# atau config tidak valid (dulu tetap "INSTALL SUCCESS" lalu reboot walau gagal).
+if ! /usr/local/bin/xray version >/dev/null 2>&1 || ! /usr/local/bin/xray run -test -config /etc/xray/config.json >/dev/null 2>&1; then
+    echo -e "\033[91mERROR: Xray tidak terpasang dengan benar atau config tidak valid.\033[0m"
+    echo "Instalasi TIDAK selesai dengan benar dan VPS TIDAK di-reboot."
+    echo "Penyebab tersering: unduhan dari GitHub/repo gagal (jaringan) atau apt bermasalah."
+    echo "Perbaiki penyebabnya lalu jalankan installer lagi."
+    exit 1
+fi
 echo -e ""
 echo -e "\033[96m====================================================\033[0m"
 echo -e "\033[92m                  INSTALL SUCCESS\033[0m"
