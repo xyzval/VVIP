@@ -1184,6 +1184,12 @@ if ! /usr/local/bin/xray version >/dev/null 2>&1 || ! /usr/local/bin/xray run -t
     echo "Perbaiki penyebabnya lalu jalankan installer lagi."
     exit 1
 fi
+# [FIX-2] 'xray run -test' di atas berjalan sebagai root dan dapat membuat file
+# log milik root. Service xray berjalan sebagai www-data, sehingga sesudah
+# reboot akan gagal membuka access.log (permission denied). Luruskan miliknya:
+mkdir -p /var/log/xray
+touch /var/log/xray/access.log /var/log/xray/error.log
+chown -R www-data:www-data /var/log/xray
 echo -e ""
 echo -e "\033[96m====================================================\033[0m"
 echo -e "\033[92m                  INSTALL SUCCESS\033[0m"
