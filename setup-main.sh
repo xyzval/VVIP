@@ -231,6 +231,27 @@ function first_setup() {
     echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
     echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
 
+    # [FIX] Keep internal VPN listener ports out of ephemeral source-port selection.
+    # A long-lived HAProxy -> nginx connection can otherwise get local source port
+    # 10004, preventing Xray from binding 127.0.0.1:10004 and causing a restart loop.
+    _reserved_ports="$(cat /proc/sys/net/ipv4/ip_local_reserved_ports 2>/dev/null || true)"
+    case ",${_reserved_ports}," in
+        *",10000-10015,"*) ;;
+        *)
+            if [[ -n "$_reserved_ports" ]]; then
+                _reserved_ports="${_reserved_ports},10000-10015"
+            else
+                _reserved_ports="10000-10015"
+            fi
+            ;;
+    esac
+    mkdir -p /etc/sysctl.d
+    printf 'net.ipv4.ip_local_reserved_ports = %s\n' "$_reserved_ports" > /etc/sysctl.d/99-zz-vvip-reserved-ports.conf
+    if ! sysctl -w "net.ipv4.ip_local_reserved_ports=${_reserved_ports}" >/dev/null; then
+        echo -e "${RED}ERROR: Gagal mengecualikan port internal VPN dari port sementara sistem.${NC}"
+        exit 1
+    fi
+
     # Install HAProxy based on OS version
     if [[ $os_id == "ubuntu" ]]; then
         case "$os_version" in
