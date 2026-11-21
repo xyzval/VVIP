@@ -1,4 +1,10 @@
 #!/bin/bash
+# Never remove accounts using an untrusted clock. Fail closed until NTP is synced.
+if ! command -v timedatectl >/dev/null 2>&1 || [[ "$(timedatectl show -p NTPSynchronized --value 2>/dev/null || true)" != "yes" ]]; then
+    logger -t vvip-expiry "Skipped expiry cleanup: system clock is not NTP-synchronized" 2>/dev/null || true
+    exit 0
+fi
+
 now=$(date +"%Y-%m-%d")
 # Remove unused variables to speed up
 export TERM=xterm; clear 2>/dev/null

@@ -228,6 +228,22 @@ function first_setup() {
     print_install "System Configuration & HAProxy"
 
     timedatectl set-timezone Asia/Jakarta
+
+    # [FIX] Ensure an NTP client is enabled before expiry automation is installed.
+    timedatectl set-ntp true >/dev/null 2>&1 || true
+    if command -v chronyc >/dev/null 2>&1 && systemctl cat chrony.service >/dev/null 2>&1; then
+        systemctl enable --now chrony >/dev/null 2>&1 || true
+        chronyc online >/dev/null 2>&1 || true
+        # A large first-boot offset is safe to correct during installation.
+        chronyc -a makestep >/dev/null 2>&1 || true
+    elif systemctl cat systemd-timesyncd.service >/dev/null 2>&1; then
+        systemctl enable --now systemd-timesyncd >/dev/null 2>&1 || true
+    fi
+    _time_synced="$(timedatectl show -p NTPSynchronized --value 2>/dev/null || true)"
+    if [[ "$_time_synced" != "yes" ]]; then
+        echo -e "${YELLOW}WARNING: NTP belum tersinkron. Installer lanjut, tetapi auto-hapus akun akan menunggu sampai waktu tersinkron.${NC}"
+    fi
+
     echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
     echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
 
