@@ -234,12 +234,20 @@ function first_setup() {
     if command -v chronyc >/dev/null 2>&1 && systemctl cat chrony.service >/dev/null 2>&1; then
         systemctl enable --now chrony >/dev/null 2>&1 || true
         chronyc online >/dev/null 2>&1 || true
-        # A large first-boot offset is safe to correct during installation.
-        chronyc -a makestep >/dev/null 2>&1 || true
+        chronyc burst 4/4 >/dev/null 2>&1 || true
     elif systemctl cat systemd-timesyncd.service >/dev/null 2>&1; then
         systemctl enable --now systemd-timesyncd >/dev/null 2>&1 || true
     fi
-    _time_synced="$(timedatectl show -p NTPSynchronized --value 2>/dev/null || true)"
+    _time_synced="no"
+    for _time_try in {1..15}; do
+        _time_synced="$(timedatectl show -p NTPSynchronized --value 2>/dev/null || true)"
+        [[ "$_time_synced" == "yes" ]] && break
+        sleep 1
+    done
+    # Correct a large first-boot offset only after chrony has a synchronized source.
+    if [[ "$_time_synced" == "yes" ]] && command -v chronyc >/dev/null 2>&1; then
+        chronyc -a makestep >/dev/null 2>&1 || true
+    fi
     if [[ "$_time_synced" != "yes" ]]; then
         echo -e "${YELLOW}WARNING: NTP belum tersinkron. Installer lanjut, tetapi auto-hapus akun akan menunggu sampai waktu tersinkron.${NC}"
     fi
